@@ -58,17 +58,7 @@ function rejectTransfer(transfer) {
             <h1 class="text-2xl font-semibold text-slate-950">{{ t('transfers.title') }}</h1>
         </div>
 
-        <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div class="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-                <div class="grid h-10 w-10 place-items-center rounded-lg bg-amber-50 text-amber-700">
-                    <Landmark class="h-5 w-5" />
-                </div>
-                <div>
-                    <h2 class="font-semibold text-slate-950">{{ t('transfers.queue') }}</h2>
-                    <p class="text-xs text-slate-500">{{ t('transfers.count', { count: transfersTotal }) }}</p>
-                </div>
-            </div>
-
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <IndexFilters action="/manage/bank-transfers" :filters="filters" :fields="filterFields" />
 
             <div class="overflow-x-auto lg:hidden">

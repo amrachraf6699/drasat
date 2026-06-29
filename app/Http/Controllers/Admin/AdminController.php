@@ -16,7 +16,7 @@ class AdminController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['q', 'status', 'role', 'sort']);
-        $query = Admin::query()->with('roles');
+        $query = Admin::query()->where('id', '<>', auth()->id())->with('roles');
 
         $query
             ->when($filters['q'] ?? null, function ($query, string $search) {
