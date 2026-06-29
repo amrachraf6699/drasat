@@ -58,7 +58,6 @@ class SettingSeeder extends Seeder
             ['group' => 'analytics', 'input_type' => 'text', 'key' => 'google_analytics_id', 'value' => null, 'is_translatable' => false],
             ['group' => 'analytics', 'input_type' => 'text', 'key' => 'google_tag_manager_id', 'value' => null, 'is_translatable' => false],
             ['group' => 'analytics', 'input_type' => 'text', 'key' => 'meta_pixel_id', 'value' => null, 'is_translatable' => false],
-            ['group' => 'payments', 'input_type' => 'text', 'key' => 'default_currency', 'value' => 'EGP', 'is_translatable' => false],
         ];
     }
 }
