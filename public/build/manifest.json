@@ -1,241 +1,245 @@
 {
-  "_AdminLayout-4ca48170.js": {
-    "file": "assets/AdminLayout-4ca48170.js",
+  "_AdminLayout-45c8f3de.js": {
+    "file": "assets/AdminLayout-45c8f3de.js",
     "imports": [
       "resources/js/app.js",
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_Modal-89dc98fd.js": {
-    "file": "assets/Modal-89dc98fd.js",
+  "_Modal-68f96e18.js": {
+    "file": "assets/Modal-68f96e18.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js",
+      "_useTranslations-cfb62d5c.js",
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js"
+      "_AdminLayout-45c8f3de.js"
     ]
   },
-  "_Pagination-e150b4ce.js": {
-    "file": "assets/Pagination-e150b4ce.js",
+  "_Pagination-26b4c3ed.js": {
+    "file": "assets/Pagination-26b4c3ed.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js",
+      "_useTranslations-cfb62d5c.js",
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js"
+      "_AdminLayout-45c8f3de.js"
     ]
   },
-  "_calendar-days-e0ee1933.js": {
-    "file": "assets/calendar-days-e0ee1933.js",
+  "_calendar-days-d0cc06d0.js": {
+    "file": "assets/calendar-days-d0cc06d0.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_check-f030e9ce.js": {
-    "file": "assets/check-f030e9ce.js",
+  "_check-d748a456.js": {
+    "file": "assets/check-d748a456.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_circle-plus-c9637ed5.js": {
-    "file": "assets/circle-plus-c9637ed5.js",
+  "_circle-plus-a9790f8c.js": {
+    "file": "assets/circle-plus-a9790f8c.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_mail-7cf215f5.js": {
-    "file": "assets/mail-7cf215f5.js",
+  "_image-51dc8b5f.js": {
+    "file": "assets/image-51dc8b5f.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_pen-line-9603d7a4.js": {
-    "file": "assets/pen-line-9603d7a4.js",
+  "_mail-3bce572f.js": {
+    "file": "assets/mail-3bce572f.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_receipt-text-8daa7596.js": {
-    "file": "assets/receipt-text-8daa7596.js",
+  "_pen-line-cb0872f0.js": {
+    "file": "assets/pen-line-cb0872f0.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_save-08744b86.js": {
-    "file": "assets/save-08744b86.js",
+  "_receipt-text-55608eda.js": {
+    "file": "assets/receipt-text-55608eda.js",
     "imports": [
-      "_useTranslations-0b6f8f12.js"
+      "_useTranslations-cfb62d5c.js"
     ]
   },
-  "_useTranslations-0b6f8f12.js": {
-    "file": "assets/useTranslations-0b6f8f12.js",
+  "_save-c24f15f8.js": {
+    "file": "assets/save-c24f15f8.js",
+    "imports": [
+      "_useTranslations-cfb62d5c.js"
+    ]
+  },
+  "_useTranslations-cfb62d5c.js": {
+    "file": "assets/useTranslations-cfb62d5c.js",
     "imports": [
       "resources/js/app.js"
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-e3e2f768.css",
+    "file": "assets/app-38e260ce.css",
     "src": "resources/js/app.css"
   },
   "resources/js/Pages/Admin/Admins.vue": {
-    "file": "assets/Admins-34a628a6.js",
+    "file": "assets/Admins-23b66ef3.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Pagination-e150b4ce.js",
-      "_Modal-89dc98fd.js",
-      "_useTranslations-0b6f8f12.js",
-      "_save-08744b86.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Pagination-26b4c3ed.js",
+      "_Modal-68f96e18.js",
+      "_useTranslations-cfb62d5c.js",
+      "_save-c24f15f8.js",
+      "_pen-line-cb0872f0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Admins.vue"
   },
   "resources/js/Pages/Admin/Auth/Login.vue": {
-    "file": "assets/Login-be5d61d4.js",
+    "file": "assets/Login-1de0d773.js",
     "imports": [
       "resources/js/app.js",
-      "_useTranslations-0b6f8f12.js",
-      "_mail-7cf215f5.js"
+      "_useTranslations-cfb62d5c.js",
+      "_mail-3bce572f.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Auth/Login.vue"
   },
   "resources/js/Pages/Admin/BankTransfers.vue": {
-    "file": "assets/BankTransfers-ded1aaa1.js",
+    "file": "assets/BankTransfers-17ec84e6.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_check-f030e9ce.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Pagination-26b4c3ed.js",
+      "_useTranslations-cfb62d5c.js",
+      "_check-d748a456.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/BankTransfers.vue"
   },
   "resources/js/Pages/Admin/Dashboard.vue": {
-    "file": "assets/Dashboard-f00ead06.js",
+    "file": "assets/Dashboard-c7004065.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_useTranslations-0b6f8f12.js",
-      "_circle-plus-c9637ed5.js",
-      "_receipt-text-8daa7596.js",
-      "_check-f030e9ce.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_useTranslations-cfb62d5c.js",
+      "_circle-plus-a9790f8c.js",
+      "_receipt-text-55608eda.js",
+      "_check-d748a456.js",
+      "_pen-line-cb0872f0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Dashboard.vue"
   },
   "resources/js/Pages/Admin/Detail.vue": {
-    "file": "assets/Detail-e0e6c252.js",
+    "file": "assets/Detail-9ef73bc7.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_useTranslations-0b6f8f12.js"
+      "_AdminLayout-45c8f3de.js",
+      "_useTranslations-cfb62d5c.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Detail.vue"
   },
   "resources/js/Pages/Admin/Faqs.vue": {
-    "file": "assets/Faqs-efb7fde4.js",
+    "file": "assets/Faqs-b7db33fe.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Modal-89dc98fd.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_circle-plus-c9637ed5.js",
-      "_save-08744b86.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Modal-68f96e18.js",
+      "_Pagination-26b4c3ed.js",
+      "_useTranslations-cfb62d5c.js",
+      "_circle-plus-a9790f8c.js",
+      "_save-c24f15f8.js",
+      "_pen-line-cb0872f0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Faqs.vue"
   },
   "resources/js/Pages/Admin/Orders.vue": {
-    "file": "assets/Orders-dc9acb86.js",
+    "file": "assets/Orders-7bffab91.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_receipt-text-8daa7596.js",
-      "_calendar-days-e0ee1933.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Pagination-26b4c3ed.js",
+      "_useTranslations-cfb62d5c.js",
+      "_receipt-text-55608eda.js",
+      "_calendar-days-d0cc06d0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Orders.vue"
   },
   "resources/js/Pages/Admin/Products.vue": {
-    "file": "assets/Products-c57f546e.js",
+    "file": "assets/Products-cdace83b.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Modal-89dc98fd.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_save-08744b86.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Modal-68f96e18.js",
+      "_Pagination-26b4c3ed.js",
+      "_useTranslations-cfb62d5c.js",
+      "_image-51dc8b5f.js",
+      "_save-c24f15f8.js",
+      "_pen-line-cb0872f0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Products.vue"
   },
   "resources/js/Pages/Admin/Profile.vue": {
-    "file": "assets/Profile-8e00c934.js",
+    "file": "assets/Profile-fee21876.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_useTranslations-0b6f8f12.js",
-      "_mail-7cf215f5.js",
-      "_save-08744b86.js"
+      "_AdminLayout-45c8f3de.js",
+      "_useTranslations-cfb62d5c.js",
+      "_mail-3bce572f.js",
+      "_save-c24f15f8.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Profile.vue"
   },
   "resources/js/Pages/Admin/Roles.vue": {
-    "file": "assets/Roles-271e9b7b.js",
+    "file": "assets/Roles-89d2eedb.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Pagination-e150b4ce.js",
-      "_Modal-89dc98fd.js",
-      "_useTranslations-0b6f8f12.js",
-      "_save-08744b86.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Pagination-26b4c3ed.js",
+      "_Modal-68f96e18.js",
+      "_useTranslations-cfb62d5c.js",
+      "_save-c24f15f8.js",
+      "_pen-line-cb0872f0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Roles.vue"
   },
   "resources/js/Pages/Admin/Settings.vue": {
-    "file": "assets/Settings-e0678dd9.js",
+    "file": "assets/Settings-fa04d1e7.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Modal-89dc98fd.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_circle-plus-c9637ed5.js",
-      "_save-08744b86.js",
-      "_pen-line-9603d7a4.js"
+      "_AdminLayout-45c8f3de.js",
+      "_useTranslations-cfb62d5c.js",
+      "_image-51dc8b5f.js",
+      "_save-c24f15f8.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Settings.vue"
   },
   "resources/js/Pages/Admin/Users.vue": {
-    "file": "assets/Users-76662af1.js",
+    "file": "assets/Users-90bf53cd.js",
     "imports": [
       "resources/js/app.js",
-      "_AdminLayout-4ca48170.js",
-      "_Pagination-e150b4ce.js",
-      "_useTranslations-0b6f8f12.js",
-      "_calendar-days-e0ee1933.js"
+      "_AdminLayout-45c8f3de.js",
+      "_Pagination-26b4c3ed.js",
+      "_useTranslations-cfb62d5c.js",
+      "_calendar-days-d0cc06d0.js"
     ],
     "isDynamicEntry": true,
     "src": "resources/js/Pages/Admin/Users.vue"
   },
   "resources/js/app.css": {
-    "file": "assets/app-e3e2f768.css",
+    "file": "assets/app-38e260ce.css",
     "src": "resources/js/app.css"
   },
   "resources/js/app.js": {
     "css": [
-      "assets/app-e3e2f768.css"
+      "assets/app-38e260ce.css"
     ],
     "dynamicImports": [
       "resources/js/Pages/Admin/Admins.vue",
@@ -251,7 +255,7 @@
       "resources/js/Pages/Admin/Settings.vue",
       "resources/js/Pages/Admin/Users.vue"
     ],
-    "file": "assets/app-c73618bf.js",
+    "file": "assets/app-07468cbb.js",
     "isEntry": true,
     "src": "resources/js/app.js"
   }

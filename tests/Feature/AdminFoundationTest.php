@@ -13,6 +13,8 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -28,10 +30,32 @@ class AdminFoundationTest extends TestCase
 
         $this->assertTrue(Admin::where('email', 'admin@drasa.test')->exists());
         $this->assertTrue(Role::where('name', 'super-admin')->where('guard_name', 'admin')->exists());
+        $role = Role::where('name', 'super-admin')->where('guard_name', 'admin')->firstOrFail();
         $this->assertTrue(Admin::where('email', 'admin@drasa.test')->first()->hasRole('super-admin'));
 
         foreach (['admins.view', 'admins.create', 'admins.update', 'admins.delete', 'transfers.view', 'transfers.approve', 'transfers.reject', 'faqs.view', 'settings.view', 'roles.view'] as $permission) {
             $this->assertTrue(Permission::where('name', $permission)->where('guard_name', 'admin')->exists());
+        }
+
+        $this->assertTrue($role->hasPermissionTo('settings.view', 'admin'));
+        $this->assertTrue($role->hasPermissionTo('settings.update', 'admin'));
+        $this->assertFalse($role->permissions->pluck('name')->contains('settings.create'));
+        $this->assertFalse($role->permissions->pluck('name')->contains('settings.delete'));
+
+        foreach ([
+            ['general', 'site_name'],
+            ['general', 'site_logo'],
+            ['general', 'support_email'],
+            ['social', 'facebook'],
+            ['social', 'x'],
+            ['social', 'whatsapp'],
+            ['social', 'linkedin'],
+            ['social', 'twitter'],
+            ['analytics', 'google_analytics_id'],
+            ['analytics', 'google_tag_manager_id'],
+            ['analytics', 'meta_pixel_id'],
+        ] as [$group, $key]) {
+            $this->assertTrue(Setting::where('group', $group)->where('key', $key)->exists());
         }
     }
 
@@ -129,7 +153,7 @@ class AdminFoundationTest extends TestCase
         foreach ([
             '/manage/products' => ['Admin/Products', 'products'],
             '/manage/faqs' => ['Admin/Faqs', 'faqs'],
-            '/manage/settings' => ['Admin/Settings', 'settings'],
+            '/manage/settings' => ['Admin/Settings', null],
             '/manage/orders' => ['Admin/Orders', 'orders'],
             '/manage/bank-transfers' => ['Admin/BankTransfers', 'transfers'],
             '/manage/users' => ['Admin/Users', 'users'],
@@ -143,7 +167,11 @@ class AdminFoundationTest extends TestCase
                 ->assertInertia(function (Assert $page) use ($component, $paginatedProp) {
                     $page->component($component);
 
-                    if ($paginatedProp) {
+                    if ($component === 'Admin/Settings') {
+                        $page
+                            ->has('groups')
+                            ->has('groups.0.settings');
+                    } elseif ($paginatedProp) {
                         $page
                             ->has("{$paginatedProp}.data")
                             ->has("{$paginatedProp}.total")
@@ -284,6 +312,102 @@ class AdminFoundationTest extends TestCase
             'id' => $role->id,
             'guard_name' => 'admin',
         ]);
+    }
+
+    public function test_admin_can_update_seeded_settings_values(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $admin = Admin::where('email', 'admin@drasa.test')->firstOrFail();
+        $supportEmail = Setting::where('group', 'general')->where('key', 'support_email')->firstOrFail();
+        $siteName = Setting::where('group', 'general')->where('key', 'site_name')->firstOrFail();
+
+        $this->actingAs($admin, 'admin')
+            ->put("/manage/settings/{$supportEmail->id}", [
+                'value' => 'help@drasa.test',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('help@drasa.test', $supportEmail->fresh()->value);
+
+        $this->actingAs($admin, 'admin')
+            ->put("/manage/settings/{$siteName->id}", [
+                'value_en' => 'Dirasat Updated',
+                'value_ar' => 'دراسات محدثة',
+            ])
+            ->assertRedirect();
+
+        $siteName->refresh();
+
+        $this->assertSame('Dirasat Updated', $siteName->translations()->where('locale', 'en')->value('value'));
+        $this->assertSame('دراسات محدثة', $siteName->translations()->where('locale', 'ar')->value('value'));
+        $this->assertSame('Dirasat', $siteName->value);
+    }
+
+    public function test_admin_cannot_create_or_delete_settings(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $admin = Admin::where('email', 'admin@drasa.test')->firstOrFail();
+        $setting = Setting::firstOrFail();
+
+        $this->actingAs($admin, 'admin')
+            ->post('/manage/settings', [
+                'group' => 'general',
+                'key' => 'new_setting',
+                'input_type' => 'text',
+            ])
+            ->assertStatus(405);
+
+        $this->actingAs($admin, 'admin')
+            ->delete("/manage/settings/{$setting->id}")
+            ->assertStatus(405);
+    }
+
+    public function test_admin_without_settings_update_permission_cannot_update_settings(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $setting = Setting::where('group', 'general')->where('key', 'support_email')->firstOrFail();
+        $limitedAdmin = Admin::create([
+            'name' => 'Settings Viewer',
+            'email' => 'settings.viewer@drasa.test',
+            'password' => Hash::make('password'),
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $role = Role::create(['name' => 'settings-viewer', 'guard_name' => 'admin']);
+        $role->givePermissionTo('settings.view');
+        $limitedAdmin->assignRole($role);
+
+        $this->actingAs($limitedAdmin, 'admin')
+            ->get('/manage/settings')
+            ->assertOk();
+
+        $this->actingAs($limitedAdmin, 'admin')
+            ->put("/manage/settings/{$setting->id}", [
+                'value' => 'blocked@drasa.test',
+            ])
+            ->assertForbidden();
+
+        $this->assertNotSame('blocked@drasa.test', $setting->fresh()->value);
+    }
+
+    public function test_admin_can_upload_site_logo_setting(): void
+    {
+        Storage::fake('public');
+        $this->seed(DatabaseSeeder::class);
+        $admin = Admin::where('email', 'admin@drasa.test')->firstOrFail();
+        $logo = Setting::where('group', 'general')->where('key', 'site_logo')->firstOrFail();
+
+        $this->actingAs($admin, 'admin')
+            ->post("/manage/settings/{$logo->id}", [
+                '_method' => 'put',
+                'value' => UploadedFile::fake()->image('logo.png', 320, 160),
+            ])
+            ->assertRedirect();
+
+        $logo->refresh();
+
+        $this->assertStringStartsWith('settings/', $logo->value);
+        Storage::disk('public')->assertExists($logo->value);
     }
 
     public function test_admin_can_create_bilingual_product(): void

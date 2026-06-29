@@ -1,109 +1,79 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, reactive, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import Modal from '@/Components/Admin/Modal.vue';
-import IndexFilters from '@/Components/Admin/IndexFilters.vue';
-import Pagination from '@/Components/Admin/Pagination.vue';
 import { useTranslations } from '@/Composables/useTranslations';
-import { Edit3, Eye, PlusCircle, Save, SlidersHorizontal, Trash2, X } from 'lucide-vue-next';
+import { Image, Save, Settings as SettingsIcon } from 'lucide-vue-next';
 
 const props = defineProps({
-    settings: { type: Object, required: true },
-    filters: { type: Object, default: () => ({}) },
-    filterOptions: { type: Object, default: () => ({ groups: [] }) },
+    groups: { type: Array, required: true },
 });
 
-const { inputTypeLabel, locale, t } = useTranslations();
-const modalOpen = ref(false);
-const settingItems = computed(() => props.settings.data || []);
-const filterFields = computed(() => [
-    {
-        key: 'group',
-        label: t('common.all_groups'),
-        options: (props.filterOptions.groups || []).map((group) => ({ value: group, label: group })),
-    },
-    {
-        key: 'input_type',
-        label: t('common.all_types'),
-        options: ['text', 'textarea', 'image', 'url', 'email', 'number', 'boolean'].map((type) => ({ value: type, label: inputTypeLabel(type) })),
-    },
-    {
-        key: 'translatable',
-        label: t('common.all_values'),
-        options: [
-            { value: 'yes', label: t('common.translated') },
-            { value: 'no', label: t('common.single_value') },
-        ],
-    },
-    {
-        key: 'sort',
-        label: t('common.sort_by'),
-        options: [
-            { value: 'key', label: t('common.key') },
-            { value: 'newest', label: t('common.newest') },
-            { value: 'oldest', label: t('common.oldest') },
-        ],
-    },
-]);
+const { inputTypeLabel, t } = useTranslations();
+const activeGroupKey = ref(props.groups[0]?.key || '');
+const forms = reactive({});
+const processing = reactive({});
 
-const blank = {
-    id: null,
-    group: 'general',
-    input_type: 'text',
-    key: '',
-    value: '',
-    value_en: '',
-    value_ar: '',
-    is_translatable: false,
-};
+props.groups.forEach((group) => {
+    group.settings.forEach((setting) => {
+        forms[setting.id] = {
+            value: normalizeValue(setting),
+            value_en: setting.value_en || '',
+            value_ar: setting.value_ar || '',
+            file: null,
+            fileName: '',
+        };
+        processing[setting.id] = false;
+    });
+});
 
-const form = useForm({ ...blank });
+const activeGroup = computed(() => {
+    return props.groups.find((group) => group.key === activeGroupKey.value) || props.groups[0] || { settings: [] };
+});
 
-function resetForm() {
-    Object.assign(form, { ...blank });
-    form.clearErrors();
-}
-
-function openCreateModal() {
-    resetForm();
-    modalOpen.value = true;
-}
-
-function editSetting(setting) {
-    Object.assign(form, { ...blank, ...setting });
-    form.clearErrors();
-    modalOpen.value = true;
-}
-
-function closeModal() {
-    modalOpen.value = false;
-    resetForm();
-}
-
-function submit() {
-    if (form.id) {
-        form.put(`/manage/settings/${form.id}`, { preserveScroll: true, onSuccess: () => closeModal() });
-        return;
+function normalizeValue(setting) {
+    if (setting.input_type === 'boolean') {
+        return setting.value === true || setting.value === '1' || setting.value === 1;
     }
 
-    form.post('/manage/settings', { preserveScroll: true, onSuccess: () => closeModal() });
+    return setting.value || '';
 }
 
-function destroySetting(setting) {
-    if (confirm(t('settings.delete_confirm', { key: `${setting.group}.${setting.key}` }))) {
-        router.delete(`/manage/settings/${setting.id}`, { preserveScroll: true });
+function submit(setting) {
+    const form = forms[setting.id];
+    const payload = { _method: 'put' };
+
+    if (setting.input_type === 'image') {
+        if (form.file) {
+            payload.value = form.file;
+        }
+    } else if (setting.is_translatable) {
+        payload.value = form.value;
+        payload.value_en = form.value_en;
+        payload.value_ar = form.value_ar;
+    } else {
+        payload.value = setting.input_type === 'boolean' ? (form.value ? '1' : '0') : form.value;
     }
+
+    processing[setting.id] = true;
+
+    router.post(`/manage/settings/${setting.id}`, payload, {
+        forceFormData: setting.input_type === 'image',
+        preserveScroll: true,
+        onFinish: () => {
+            processing[setting.id] = false;
+        },
+        onSuccess: () => {
+            form.file = null;
+            form.fileName = '';
+        },
+    });
 }
 
-function settingValue(setting) {
-    if (setting.is_translatable) {
-        const value = locale.value === 'ar' ? (setting.value_ar || setting.value_en) : (setting.value_en || setting.value_ar);
-
-        return value || t('common.empty_translated_value');
-    }
-
-    return setting.value || t('common.empty_value');
+function updateFile(setting, event) {
+    const file = event.target.files?.[0] || null;
+    forms[setting.id].file = file;
+    forms[setting.id].fileName = file?.name || '';
 }
 </script>
 
@@ -111,179 +81,97 @@ function settingValue(setting) {
     <Head :title="t('settings.title')" />
 
     <AdminLayout>
-        <div class="mb-6 flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div class="min-w-0">
-                <h1 class="text-2xl font-semibold text-slate-950">{{ t('settings.title') }}</h1>
-            </div>
-            <button class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700" type="button" @click="openCreateModal">
-                <PlusCircle class="h-4 w-4" />
-                {{ t('settings.new') }}
-            </button>
+        <div class="mb-6 min-w-0">
+            <h1 class="text-2xl font-semibold text-slate-950">{{ t('settings.title') }}</h1>
         </div>
 
         <section class="min-w-0 rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div class="border-b border-slate-200 px-5 py-4">
-                <h2 class="font-semibold text-slate-950">{{ t('settings.list') }}</h2>
+            <div class="overflow-x-auto border-b border-slate-200 px-4 py-3">
+                <div class="flex min-w-max gap-2">
+                    <button
+                        v-for="group in groups"
+                        :key="group.key"
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition"
+                        :class="activeGroupKey === group.key ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'"
+                        @click="activeGroupKey = group.key"
+                    >
+                        <SettingsIcon class="h-4 w-4" />
+                        {{ group.label }}
+                    </button>
+                </div>
             </div>
 
-            <IndexFilters action="/manage/settings" :filters="filters" :fields="filterFields" />
-
-            <div class="overflow-x-auto lg:hidden">
-                <table class="min-w-[700px] w-full text-start text-sm">
-                    <thead class="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-                        <tr>
-                            <th class="px-4 py-3 text-start">{{ t('common.key') }}</th>
-                            <th class="px-4 py-3 text-start">{{ t('common.group') }}</th>
-                            <th class="px-4 py-3 text-start">{{ t('common.input_type') }}</th>
-                            <th class="px-4 py-3 text-start">{{ t('common.value') }}</th>
-                            <th class="px-4 py-3 text-end">{{ t('common.actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr v-for="setting in settingItems" :key="`mobile-${setting.id}`" class="hover:bg-slate-50/70">
-                            <td class="px-4 py-3 font-semibold text-slate-900">{{ setting.key }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ setting.group }}</td>
-                            <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ inputTypeLabel(setting.input_type) }}</td>
-                            <td class="max-w-[260px] px-4 py-3">
-                                <p class="line-clamp-2 break-words text-slate-600">{{ settingValue(setting) }}</p>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex justify-end gap-2">
-                                    <Link class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50" :href="`/manage/settings/${setting.id}`" :title="t('common.view')">
-                                        <Eye class="h-4 w-4" />
-                                    </Link>
-                                    <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50" type="button" :title="t('common.edit')" @click="editSetting(setting)">
-                                        <Edit3 class="h-4 w-4" />
-                                    </button>
-                                    <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50" type="button" :title="t('common.delete')" @click="destroySetting(setting)">
-                                        <Trash2 class="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="hidden divide-y divide-slate-100 lg:block">
-                <article v-for="setting in settingItems" :key="setting.id" class="min-w-0 px-5 py-4 transition hover:bg-slate-50/70">
-                    <div class="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_150px_130px_auto] lg:items-center">
-                        <div class="flex min-w-0 items-start gap-3">
-                            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700">
-                                <SlidersHorizontal class="h-5 w-5" />
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex min-w-0 flex-wrap items-center gap-2">
-                                    <p class="break-words font-semibold text-slate-900">{{ setting.key }}</p>
-                                    <span class="rounded-md bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">{{ setting.group }}</span>
-                                </div>
-                                <p class="mt-2 break-words text-sm leading-6 text-slate-500">{{ settingValue(setting) }}</p>
-                            </div>
-                        </div>
-
-                        <div>
-                            <p class="text-sm font-medium capitalize text-slate-800">{{ inputTypeLabel(setting.input_type) }}</p>
-                            <p class="mt-1 text-xs text-slate-500">{{ t('common.input_type') }}</p>
-                        </div>
-
-                        <div>
-                            <span class="inline-flex rounded-md px-2 py-1 text-xs font-semibold" :class="setting.is_translatable ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'">
-                                {{ setting.is_translatable ? t('common.translated') : t('common.single_value') }}
-                            </span>
-                        </div>
-
-                        <div class="flex justify-start gap-2 lg:justify-end">
-                            <Link class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50" :href="`/manage/settings/${setting.id}`" :title="t('common.view')">
-                                <Eye class="h-4 w-4" />
-                            </Link>
-                            <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50" type="button" :title="t('common.edit')" @click="editSetting(setting)">
-                                <Edit3 class="h-4 w-4" />
-                            </button>
-                            <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50" type="button" :title="t('common.delete')" @click="destroySetting(setting)">
-                                <Trash2 class="h-4 w-4" />
-                            </button>
-                        </div>
+            <div class="divide-y divide-slate-100">
+                <form
+                    v-for="setting in activeGroup.settings"
+                    :key="setting.id"
+                    class="grid min-w-0 gap-4 px-5 py-5 lg:grid-cols-[minmax(220px,0.36fr)_minmax(0,1fr)_auto] lg:items-start"
+                    @submit.prevent="submit(setting)"
+                >
+                    <div class="min-w-0">
+                        <p class="break-words text-sm font-semibold text-slate-950">{{ setting.label }}</p>
+                        <p v-if="setting.help" class="mt-2 break-words text-sm leading-6 text-slate-500">{{ setting.help }}</p>
                     </div>
-                </article>
 
-                <div v-if="settingItems.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
+                    <div class="min-w-0">
+                        <div v-if="setting.input_type === 'image'" class="grid gap-3">
+                            <div v-if="setting.value_url" class="flex items-center gap-3">
+                                <img :src="setting.value_url" class="h-14 w-14 rounded-lg border border-slate-200 object-contain" alt="">
+                                <p class="min-w-0 break-all text-xs text-slate-500">{{ setting.value }}</p>
+                            </div>
+                            <label class="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-5 text-center hover:border-emerald-300 hover:bg-emerald-50/30">
+                                <Image class="h-6 w-6 text-slate-500" />
+                                <span class="text-sm font-semibold text-slate-700">{{ forms[setting.id].fileName || t('settings.choose_logo') }}</span>
+                                <input class="sr-only" type="file" accept="image/*" @change="updateFile(setting, $event)">
+                            </label>
+                        </div>
+
+                        <label v-else-if="setting.input_type === 'boolean'" class="flex items-center gap-2 text-sm text-slate-700">
+                            <input v-model="forms[setting.id].value" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" type="checkbox">
+                            {{ t('settings.enabled') }}
+                        </label>
+
+                        <textarea
+                            v-else-if="setting.input_type === 'textarea' && !setting.is_translatable"
+                            v-model="forms[setting.id].value"
+                            class="min-h-28 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                        />
+
+                        <div v-else-if="setting.is_translatable" class="grid gap-3 md:grid-cols-2">
+                            <label class="block">
+                                <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.value_en') }}</span>
+                                <input v-model="forms[setting.id].value_en" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" type="text">
+                            </label>
+                            <label class="block">
+                                <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.value_ar') }}</span>
+                                <input v-model="forms[setting.id].value_ar" dir="rtl" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" type="text">
+                            </label>
+                        </div>
+
+                        <input
+                            v-else
+                            v-model="forms[setting.id].value"
+                            class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
+                            :type="{ email: 'email', url: 'url', number: 'number' }[setting.input_type] || 'text'"
+                        >
+                    </div>
+
+                    <div class="flex justify-start lg:justify-end">
+                        <button
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                            :disabled="processing[setting.id]"
+                        >
+                            <Save class="h-4 w-4" />
+                            {{ t('common.save_changes') }}
+                        </button>
+                    </div>
+                </form>
+
+                <div v-if="activeGroup.settings.length === 0" class="px-5 py-12 text-center text-sm text-slate-500">
                     {{ t('settings.empty') }}
                 </div>
             </div>
-
-            <div v-if="settingItems.length === 0" class="px-5 py-12 text-center text-sm text-slate-500 lg:hidden">
-                {{ t('settings.empty') }}
-            </div>
-
-            <Pagination :paginator="settings" />
         </section>
-
-        <Modal
-            :show="modalOpen"
-            :title="form.id ? t('settings.edit') : t('settings.create')"
-            :description="t('settings.modal_description')"
-            width="max-w-3xl"
-            @close="closeModal"
-        >
-            <form class="grid gap-5" @submit.prevent="submit">
-                <div class="grid gap-4 md:grid-cols-2">
-                    <label class="block">
-                        <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.group') }}</span>
-                        <input v-model="form.group" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" type="text">
-                        <span v-if="form.errors.group" class="mt-1 block text-xs text-red-600">{{ form.errors.group }}</span>
-                    </label>
-                    <label class="block">
-                        <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.input_type') }}</span>
-                        <select v-model="form.input_type" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500">
-                            <option value="text">{{ inputTypeLabel('text') }}</option>
-                            <option value="textarea">{{ inputTypeLabel('textarea') }}</option>
-                            <option value="image">{{ inputTypeLabel('image') }}</option>
-                            <option value="url">{{ inputTypeLabel('url') }}</option>
-                            <option value="email">{{ inputTypeLabel('email') }}</option>
-                            <option value="number">{{ inputTypeLabel('number') }}</option>
-                            <option value="boolean">{{ inputTypeLabel('boolean') }}</option>
-                        </select>
-                    </label>
-                </div>
-
-                <label class="block">
-                    <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.key') }}</span>
-                    <input v-model="form.key" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" type="text">
-                    <span v-if="form.errors.key" class="mt-1 block text-xs text-red-600">{{ form.errors.key }}</span>
-                </label>
-
-                <label class="flex items-center gap-2 text-sm text-slate-600">
-                    <input v-model="form.is_translatable" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" type="checkbox">
-                    {{ t('common.store_translated_values') }}
-                </label>
-
-                <label v-if="!form.is_translatable" class="block">
-                    <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.value') }}</span>
-                    <textarea v-model="form.value" class="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" />
-                </label>
-
-                <div v-else class="grid gap-4 md:grid-cols-2">
-                    <label class="block">
-                        <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.value_en') }}</span>
-                        <textarea v-model="form.value_en" class="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" />
-                    </label>
-                    <label class="block">
-                        <span class="mb-1 block text-xs font-semibold text-slate-600">{{ t('common.value_ar') }}</span>
-                        <textarea v-model="form.value_ar" dir="rtl" class="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500" />
-                    </label>
-                </div>
-
-                <div class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end">
-                    <button type="button" class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" @click="closeModal">
-                        <X class="h-4 w-4" />
-                        {{ t('common.cancel') }}
-                    </button>
-                    <button class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60" :disabled="form.processing">
-                        <Save class="h-4 w-4" />
-                        {{ form.id ? t('common.save_changes') : t('settings.create') }}
-                    </button>
-                </div>
-            </form>
-        </Modal>
     </AdminLayout>
 </template>

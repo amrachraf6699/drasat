@@ -6,46 +6,39 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SettingController extends Controller
 {
-    public function index(Request $request): Response
+    private const GROUP_ORDER = ['general', 'social', 'analytics', 'payments'];
+
+    private const KEY_ORDER = [
+        'general' => ['site_name', 'site_logo', 'support_email'],
+        'social' => ['facebook', 'x', 'whatsapp', 'linkedin', 'twitter'],
+        'analytics' => ['google_analytics_id', 'google_tag_manager_id', 'meta_pixel_id'],
+        'payments' => ['default_currency'],
+    ];
+
+    public function index(): Response
     {
-        $filters = $request->only(['q', 'group', 'input_type', 'translatable', 'sort']);
-        $query = Setting::query()->with('translations');
-
-        $query
-            ->when($filters['q'] ?? null, function ($query, string $search) {
-                $query->where(function ($query) use ($search) {
-                    $query
-                        ->where('group', 'like', "%{$search}%")
-                        ->orWhere('key', 'like', "%{$search}%")
-                        ->orWhere('value', 'like', "%{$search}%")
-                        ->orWhereHas('translations', fn ($query) => $query->where('value', 'like', "%{$search}%"));
-                });
-            })
-            ->when($filters['group'] ?? null, fn ($query, string $group) => $query->where('group', $group))
-            ->when($filters['input_type'] ?? null, fn ($query, string $type) => $query->where('input_type', $type))
-            ->when(($filters['translatable'] ?? null) === 'yes', fn ($query) => $query->where('is_translatable', true))
-            ->when(($filters['translatable'] ?? null) === 'no', fn ($query) => $query->where('is_translatable', false));
-
-        match ($filters['sort'] ?? 'key') {
-            'newest' => $query->latest(),
-            'oldest' => $query->oldest(),
-            default => $query->orderBy('group')->orderBy('key'),
-        };
+        $settings = Setting::query()
+            ->with('translations')
+            ->get()
+            ->sortBy(fn (Setting $setting) => $this->sortKey($setting))
+            ->values();
 
         return Inertia::render('Admin/Settings', [
-            'filters' => $filters,
-            'filterOptions' => [
-                'groups' => Setting::query()->select('group')->distinct()->orderBy('group')->pluck('group')->values(),
-            ],
-            'settings' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (Setting $setting) => $this->serializeSetting($setting)),
+            'groups' => $settings
+                ->groupBy('group')
+                ->sortBy(fn ($settings, string $group) => $this->groupIndex($group))
+                ->map(fn ($settings, string $group) => [
+                    'key' => $group,
+                    'label' => __("admin.settings.groups.{$group}"),
+                    'settings' => $settings->map(fn (Setting $setting) => $this->serializeSetting($setting))->values(),
+                ])
+                ->values(),
         ]);
     }
 
@@ -55,11 +48,11 @@ class SettingController extends Controller
         $data = $this->serializeSetting($setting);
 
         return Inertia::render('Admin/Detail', [
-            'title' => "{$setting->group}.{$setting->key}",
-            'subtitle' => __('admin.common.input_types.'.$setting->input_type),
+            'title' => $data['label'],
+            'subtitle' => __("admin.settings.groups.{$setting->group}"),
             'backHref' => route('admin.settings.index'),
             'stats' => [
-                ['label' => __('admin.common.group'), 'value' => $setting->group],
+                ['label' => __('admin.common.group'), 'value' => __("admin.settings.groups.{$setting->group}")],
                 ['label' => __('admin.common.input_type'), 'value' => __('admin.common.input_types.'.$setting->input_type)],
                 ['label' => __('admin.common.translated'), 'value' => $setting->is_translatable ? __('admin.common.translated') : __('admin.common.single_value')],
                 ['label' => __('admin.common.date'), 'value' => $setting->updated_at?->format('Y-m-d H:i')],
@@ -89,73 +82,74 @@ class SettingController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
-    {
-        $data = $this->validated($request);
-
-        $setting = Setting::create([
-            'group' => $data['group'],
-            'input_type' => $data['input_type'],
-            'key' => $data['key'],
-            'value' => $data['value'] ?? null,
-            'is_translatable' => (bool) ($data['is_translatable'] ?? false),
-        ]);
-
-        $this->syncTranslations($setting, $data);
-
-        return back()->with('status', __('admin.flash.setting_created'));
-    }
-
     public function update(Request $request, Setting $setting): RedirectResponse
     {
         $data = $this->validated($request, $setting);
 
-        $setting->update([
-            'group' => $data['group'],
-            'input_type' => $data['input_type'],
-            'key' => $data['key'],
-            'value' => $data['value'] ?? null,
-            'is_translatable' => (bool) ($data['is_translatable'] ?? false),
-        ]);
+        if ($setting->input_type === 'image') {
+            $this->updateImageSetting($request, $setting);
 
-        $this->syncTranslations($setting, $data);
+            return back()->with('status', __('admin.flash.setting_updated'));
+        }
+
+        if ($setting->is_translatable) {
+            $this->syncTranslations($setting, $data);
+        } else {
+            $setting->update(['value' => $data['value'] ?? null]);
+            $setting->translations()->delete();
+        }
 
         return back()->with('status', __('admin.flash.setting_updated'));
     }
 
-    public function destroy(Setting $setting): RedirectResponse
+    private function validated(Request $request, Setting $setting): array
     {
-        $setting->delete();
+        $valueRules = match ($setting->input_type) {
+            'email' => ['nullable', 'email', 'max:255'],
+            'url' => ['nullable', 'url', 'max:1000'],
+            'number' => ['nullable', 'numeric'],
+            'boolean' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'image', 'max:4096'],
+            default => ['nullable', 'string'],
+        };
 
-        return back()->with('status', __('admin.flash.setting_deleted'));
-    }
+        if ($setting->input_type === 'image') {
+            return $request->validate([
+                'value' => $valueRules,
+            ]);
+        }
 
-    private function validated(Request $request, ?Setting $setting = null): array
-    {
         return $request->validate([
-            'group' => ['required', 'string', 'max:80'],
-            'input_type' => ['required', 'in:text,textarea,image,url,email,number,boolean'],
-            'key' => ['required', 'string', 'max:120'],
-            'value' => ['nullable', 'string'],
+            'value' => $valueRules,
             'value_en' => ['nullable', 'string'],
             'value_ar' => ['nullable', 'string'],
-            'is_translatable' => ['nullable', 'boolean'],
         ]);
     }
 
     private function syncTranslations(Setting $setting, array $data): void
     {
-        if (! $setting->is_translatable) {
-            $setting->translations()->delete();
-
-            return;
-        }
-
         foreach (['en', 'ar'] as $locale) {
             $setting->translations()->updateOrCreate(
                 ['locale' => $locale],
                 ['value' => $data["value_{$locale}"] ?? null],
             );
+        }
+    }
+
+    private function updateImageSetting(Request $request, Setting $setting): void
+    {
+        if (! $request->hasFile('value')) {
+            return;
+        }
+
+        $previousPath = $setting->value;
+        $path = $request->file('value')->store('settings', 'public');
+
+        $setting->update(['value' => $path]);
+        $setting->translations()->delete();
+
+        if ($previousPath && str_starts_with($previousPath, 'settings/')) {
+            Storage::disk('public')->delete($previousPath);
         }
     }
 
@@ -168,10 +162,51 @@ class SettingController extends Controller
             'group' => $setting->group,
             'input_type' => $setting->input_type,
             'key' => $setting->key,
+            'label' => __("admin.settings.labels.{$setting->key}"),
+            'help' => __("admin.settings.help.{$setting->key}"),
             'value' => $setting->value,
+            'value_url' => $this->settingUrl($setting),
             'value_en' => $translations->get('en')?->value,
             'value_ar' => $translations->get('ar')?->value,
             'is_translatable' => $setting->is_translatable,
         ];
+    }
+
+    private function settingUrl(Setting $setting): ?string
+    {
+        if (! $setting->value) {
+            return null;
+        }
+
+        if (filter_var($setting->value, FILTER_VALIDATE_URL)) {
+            return $setting->value;
+        }
+
+        return $setting->input_type === 'image'
+            ? Storage::disk('public')->url($setting->value)
+            : null;
+    }
+
+    private function sortKey(Setting $setting): string
+    {
+        return str_pad((string) $this->groupIndex($setting->group), 3, '0', STR_PAD_LEFT)
+            .'-'
+            .str_pad((string) $this->keyIndex($setting), 3, '0', STR_PAD_LEFT)
+            .'-'
+            .$setting->key;
+    }
+
+    private function groupIndex(string $group): int
+    {
+        $index = array_search($group, self::GROUP_ORDER, true);
+
+        return $index === false ? 999 : $index;
+    }
+
+    private function keyIndex(Setting $setting): int
+    {
+        $index = array_search($setting->key, self::KEY_ORDER[$setting->group] ?? [], true);
+
+        return $index === false ? 999 : $index;
     }
 }

@@ -73,11 +73,9 @@ Route::prefix('manage')->name('admin.')->group(function () {
         Route::delete('faqs/{faq}', [AdminFaqController::class, 'destroy'])->middleware('permission:faqs.delete|faqs.manage,admin')->name('faqs.destroy');
 
         Route::get('settings', [AdminSettingController::class, 'index'])->middleware('permission:settings.view|settings.manage,admin')->name('settings.index');
-        Route::post('settings', [AdminSettingController::class, 'store'])->middleware('permission:settings.create|settings.manage,admin')->name('settings.store');
         Route::get('settings/{setting}', [AdminSettingController::class, 'show'])->middleware('permission:settings.view|settings.manage,admin')->name('settings.show');
         Route::put('settings/{setting}', [AdminSettingController::class, 'update'])->middleware('permission:settings.update|settings.manage,admin')->name('settings.update');
         Route::patch('settings/{setting}', [AdminSettingController::class, 'update'])->middleware('permission:settings.update|settings.manage,admin');
-        Route::delete('settings/{setting}', [AdminSettingController::class, 'destroy'])->middleware('permission:settings.delete|settings.manage,admin')->name('settings.destroy');
 
         Route::get('orders', [AdminOrderController::class, 'index'])->middleware('permission:orders.view,admin')->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->middleware('permission:orders.view,admin')->name('orders.show');
