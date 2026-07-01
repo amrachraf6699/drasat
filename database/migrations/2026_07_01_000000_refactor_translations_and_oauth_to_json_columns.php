@@ -35,7 +35,7 @@ return new class extends Migration
         }
 
         foreach (['title', 'short_description', 'description'] as $column) {
-            if (! Schema::hasColumn('products', $column)) {
+            if (! $this->hasColumn('products', $column)) {
                 Schema::table('products', fn (Blueprint $table) => $table->json($column)->nullable());
             }
         }
@@ -48,7 +48,7 @@ return new class extends Migration
         }
 
         foreach (['question', 'answer'] as $column) {
-            if (! Schema::hasColumn('faqs', $column)) {
+            if (! $this->hasColumn('faqs', $column)) {
                 Schema::table('faqs', fn (Blueprint $table) => $table->json($column)->nullable());
             }
         }
@@ -56,7 +56,7 @@ return new class extends Migration
 
     private function addUserOauthColumns(): void
     {
-        if (! Schema::hasTable('users') || Schema::hasColumn('users', 'oauth_provider')) {
+        if (! Schema::hasTable('users') || $this->hasColumn('users', 'oauth_provider')) {
             return;
         }
 
@@ -66,6 +66,24 @@ return new class extends Migration
             $table->string('oauth_avatar')->nullable();
             $table->unique(['oauth_provider', 'oauth_provider_id']);
         });
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        if (DB::connection()->getDriverName() !== 'sqlite') {
+            return Schema::hasColumn($table, $column);
+        }
+
+        $table = str_replace('.', '__', DB::connection()->getTablePrefix().$table);
+        $quotedTable = str_replace("'", "''", $table);
+
+        foreach (DB::select("pragma table_info('{$quotedTable}')") as $definition) {
+            if (strtolower((string) $definition->name) === strtolower($column)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function migrateProductTranslations(): void
