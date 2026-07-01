@@ -18,13 +18,11 @@ class SettingController extends Controller
         'general' => ['site_name', 'site_logo', 'support_email'],
         'social' => ['facebook', 'x', 'whatsapp', 'linkedin', 'twitter'],
         'analytics' => ['google_analytics_id', 'google_tag_manager_id', 'meta_pixel_id'],
-        'payments' => ['default_currency'],
     ];
 
     public function index(): Response
     {
         $settings = Setting::query()
-            ->with('translations')
             ->get()
             ->sortBy(fn (Setting $setting) => $this->sortKey($setting))
             ->values();
@@ -44,7 +42,6 @@ class SettingController extends Controller
 
     public function show(Setting $setting): Response
     {
-        $setting->load('translations');
         $data = $this->serializeSetting($setting);
 
         return Inertia::render('Admin/Detail', [
@@ -72,10 +69,10 @@ class SettingController extends Controller
                         ['key' => 'locale', 'label' => __('admin.layout.switch_language')],
                         ['key' => 'value', 'label' => __('admin.common.value')],
                     ],
-                    'rows' => $setting->translations->map(fn ($translation) => [
-                        'id' => $translation->id,
-                        'locale' => $translation->locale,
-                        'value' => $translation->value,
+                    'rows' => collect($this->locales())->map(fn (string $locale) => [
+                        'id' => "{$setting->id}-{$locale}",
+                        'locale' => $locale,
+                        'value' => $this->translation($setting, 'value', $locale),
                     ])->values(),
                 ],
             ],
@@ -93,10 +90,13 @@ class SettingController extends Controller
         }
 
         if ($setting->is_translatable) {
-            $this->syncTranslations($setting, $data);
+            $setting
+                ->setTranslations('value', $this->translationsFromData($data, 'value'))
+                ->save();
         } else {
-            $setting->update(['value' => $data['value'] ?? null]);
-            $setting->translations()->delete();
+            $setting
+                ->setSharedValue($data['value'] ?? null)
+                ->save();
         }
 
         return back()->with('status', __('admin.flash.setting_updated'));
@@ -126,16 +126,6 @@ class SettingController extends Controller
         ]);
     }
 
-    private function syncTranslations(Setting $setting, array $data): void
-    {
-        foreach (['en', 'ar'] as $locale) {
-            $setting->translations()->updateOrCreate(
-                ['locale' => $locale],
-                ['value' => $data["value_{$locale}"] ?? null],
-            );
-        }
-    }
-
     private function updateImageSetting(Request $request, Setting $setting): void
     {
         if (! $request->hasFile('value')) {
@@ -145,8 +135,9 @@ class SettingController extends Controller
         $previousPath = $setting->value;
         $path = $request->file('value')->store('settings', 'public');
 
-        $setting->update(['value' => $path]);
-        $setting->translations()->delete();
+        $setting
+            ->setSharedValue($path)
+            ->save();
 
         if ($previousPath && str_starts_with($previousPath, 'settings/')) {
             Storage::disk('public')->delete($previousPath);
@@ -155,8 +146,6 @@ class SettingController extends Controller
 
     private function serializeSetting(Setting $setting): array
     {
-        $translations = $setting->translations->keyBy('locale');
-
         return [
             'id' => $setting->id,
             'group' => $setting->group,
@@ -166,10 +155,31 @@ class SettingController extends Controller
             'help' => __("admin.settings.help.{$setting->key}"),
             'value' => $setting->value,
             'value_url' => $this->settingUrl($setting),
-            'value_en' => $translations->get('en')?->value,
-            'value_ar' => $translations->get('ar')?->value,
+            'value_en' => $this->translation($setting, 'value', 'en'),
+            'value_ar' => $this->translation($setting, 'value', 'ar'),
             'is_translatable' => $setting->is_translatable,
         ];
+    }
+
+    private function translationsFromData(array $data, string $attribute): array
+    {
+        $translations = [];
+
+        foreach ($this->locales() as $locale) {
+            $translations[$locale] = $data["{$attribute}_{$locale}"] ?? null;
+        }
+
+        return $translations;
+    }
+
+    private function translation(Setting $setting, string $attribute, string $locale): mixed
+    {
+        return $setting->getTranslation($attribute, $locale, false);
+    }
+
+    private function locales(): array
+    {
+        return config('app.supported_locales', ['en', 'ar']);
     }
 
     private function settingUrl(Setting $setting): ?string

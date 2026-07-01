@@ -18,20 +18,19 @@ class ProductSeeder extends Seeder
                     'currency' => $item['currency'],
                     'status' => $item['status'],
                     'published_at' => $item['status'] === 'active' ? now() : null,
+                    'title' => $this->translations($item, 'title'),
+                    'short_description' => $this->translations($item, 'short'),
+                    'description' => $this->translations($item, 'description'),
                 ],
             );
-
-            foreach (['en', 'ar'] as $locale) {
-                $product->translations()->updateOrCreate(
-                    ['locale' => $locale],
-                    [
-                        'title' => $item[$locale]['title'],
-                        'short_description' => $item[$locale]['short'],
-                        'description' => $item[$locale]['description'],
-                    ],
-                );
-            }
         }
+    }
+
+    private function translations(array $item, string $key): array
+    {
+        return collect(config('app.supported_locales', ['en', 'ar']))
+            ->mapWithKeys(fn (string $locale) => [$locale => $item[$locale][$key] ?? null])
+            ->all();
     }
 
     private function products(): array

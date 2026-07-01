@@ -52,8 +52,7 @@ class UserController extends Controller
         $user->load([
             'orders.items',
             'purchases.order',
-            'purchases.product.translations',
-            'oauthAccounts',
+            'purchases.product',
         ]);
 
         $transfers = BankTransfer::query()
@@ -70,7 +69,7 @@ class UserController extends Controller
                 ['label' => __('admin.orders.title'), 'value' => $user->orders->count()],
                 ['label' => __('admin.users.purchases'), 'value' => $user->purchases->count()],
                 ['label' => __('admin.transfers.title'), 'value' => $transfers->count()],
-                ['label' => 'OAuth', 'value' => $user->oauthAccounts->count()],
+                ['label' => 'OAuth', 'value' => $user->oauth_provider ? 1 : 0],
             ],
             'fields' => [
                 ['label' => __('admin.common.name'), 'value' => $user->name],
@@ -137,11 +136,11 @@ class UserController extends Controller
                         ['key' => 'provider', 'label' => __('admin.common.method')],
                         ['key' => 'provider_id', 'label' => __('admin.common.reference')],
                     ],
-                    'rows' => $user->oauthAccounts->map(fn ($account) => [
-                        'id' => $account->id,
-                        'provider' => $account->provider,
-                        'provider_id' => $account->provider_id,
-                    ])->values(),
+                    'rows' => $user->oauth_provider ? [[
+                        'id' => $user->id,
+                        'provider' => $user->oauth_provider,
+                        'provider_id' => $user->oauth_provider_id,
+                    ]] : [],
                 ],
             ],
         ]);

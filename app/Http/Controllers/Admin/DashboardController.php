@@ -77,7 +77,6 @@ class DashboardController extends Controller
                 ['label' => __('admin.dashboard.stats.documents'), 'value' => Product::withCount('documents')->get()->sum('documents_count'), 'tone' => 'blue'],
             ] : [],
             'products' => $canViewProducts ? Product::query()
-                ->with(['translations'])
                 ->latest()
                 ->limit(5)
                 ->get()

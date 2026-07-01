@@ -12,19 +12,20 @@ class FaqSeeder extends Seeder
         foreach ($this->faqs() as $item) {
             $faq = Faq::updateOrCreate(
                 ['sort_order' => $item['sort_order']],
-                ['status' => 'active'],
+                [
+                    'question' => $this->translations($item, 'question'),
+                    'answer' => $this->translations($item, 'answer'),
+                    'status' => 'active',
+                ],
             );
-
-            foreach (['en', 'ar'] as $locale) {
-                $faq->translations()->updateOrCreate(
-                    ['locale' => $locale],
-                    [
-                        'question' => $item[$locale]['question'],
-                        'answer' => $item[$locale]['answer'],
-                    ],
-                );
-            }
         }
+    }
+
+    private function translations(array $item, string $key): array
+    {
+        return collect(config('app.supported_locales', ['en', 'ar']))
+            ->mapWithKeys(fn (string $locale) => [$locale => $item[$locale][$key] ?? null])
+            ->all();
     }
 
     private function faqs(): array

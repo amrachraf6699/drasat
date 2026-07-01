@@ -12,22 +12,14 @@ return new class extends Migration
             $table->id();
             $table->string('sku')->nullable()->unique();
             $table->string('slug')->unique();
+            $table->json('title')->nullable();
+            $table->json('short_description')->nullable();
+            $table->json('description')->nullable();
             $table->unsignedBigInteger('price_cents')->default(0);
             $table->string('currency', 3)->default('EGP');
             $table->string('status')->default('draft');
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
-        });
-
-        Schema::create('product_translations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
-            $table->string('locale', 2);
-            $table->string('title');
-            $table->text('short_description')->nullable();
-            $table->longText('description')->nullable();
-            $table->timestamps();
-            $table->unique(['product_id', 'locale']);
         });
 
         Schema::create('media', function (Blueprint $table) {
@@ -47,19 +39,11 @@ return new class extends Migration
 
         Schema::create('faqs', function (Blueprint $table) {
             $table->id();
+            $table->json('question')->nullable();
+            $table->json('answer')->nullable();
             $table->string('status')->default('active');
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
-        });
-
-        Schema::create('faq_translations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('faq_id')->constrained()->cascadeOnDelete();
-            $table->string('locale', 2);
-            $table->string('question');
-            $table->text('answer');
-            $table->timestamps();
-            $table->unique(['faq_id', 'locale']);
         });
 
         Schema::create('settings', function (Blueprint $table) {
@@ -67,19 +51,10 @@ return new class extends Migration
             $table->string('group')->index();
             $table->string('input_type')->default('text');
             $table->string('key');
-            $table->text('value')->nullable();
+            $table->json('value')->nullable();
             $table->boolean('is_translatable')->default(false);
             $table->timestamps();
             $table->unique(['group', 'key']);
-        });
-
-        Schema::create('setting_translations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('setting_id')->constrained()->cascadeOnDelete();
-            $table->string('locale', 2);
-            $table->text('value')->nullable();
-            $table->timestamps();
-            $table->unique(['setting_id', 'locale']);
         });
 
         Schema::create('carts', function (Blueprint $table) {
@@ -159,16 +134,6 @@ return new class extends Migration
             $table->timestamp('purchased_at');
             $table->timestamps();
             $table->unique(['user_id', 'product_id']);
-        });
-
-        Schema::create('oauth_accounts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('provider');
-            $table->string('provider_id');
-            $table->string('avatar')->nullable();
-            $table->timestamps();
-            $table->unique(['provider', 'provider_id']);
         });
     }
 

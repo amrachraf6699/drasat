@@ -18,7 +18,7 @@ class ProductController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['q', 'status', 'documents', 'sort']);
-        $query = Product::query()->with(['translations', 'cover', 'documents']);
+        $query = Product::query()->with(['cover', 'documents']);
 
         $query
             ->when($filters['q'] ?? null, function ($query, string $search) {
@@ -26,10 +26,10 @@ class ProductController extends Controller
                     $query
                         ->where('sku', 'like', "%{$search}%")
                         ->orWhere('slug', 'like', "%{$search}%")
-                        ->orWhereHas('translations', function ($query) use ($search) {
-                            $query
-                                ->where('title', 'like', "%{$search}%")
-                                ->orWhere('short_description', 'like', "%{$search}%");
+                        ->orWhere(function ($query) use ($search) {
+                            foreach ($this->translatedSearchColumns(['title', 'short_description']) as $column) {
+                                $query->orWhere($column, 'like', "%{$search}%");
+                            }
                         });
                 });
             })
@@ -56,7 +56,6 @@ class ProductController extends Controller
     public function show(Product $product): Response
     {
         $product->load([
-            'translations',
             'cover',
             'documents',
             'purchases.user',
@@ -132,9 +131,11 @@ class ProductController extends Controller
                 'currency' => strtoupper($data['currency']),
                 'status' => $data['status'],
                 'published_at' => $data['status'] === 'active' ? now() : null,
+                'title' => $this->translationsFromData($data, 'title'),
+                'short_description' => $this->translationsFromData($data, 'short_description'),
+                'description' => $this->translationsFromData($data, 'description'),
             ]);
 
-            $this->syncTranslations($product, $data);
             $this->storeUploads($request, $product);
         });
 
@@ -152,9 +153,11 @@ class ProductController extends Controller
                 'currency' => strtoupper($data['currency']),
                 'status' => $data['status'],
                 'published_at' => $data['status'] === 'active' ? ($product->published_at ?? now()) : null,
+                'title' => $this->translationsFromData($data, 'title'),
+                'short_description' => $this->translationsFromData($data, 'short_description'),
+                'description' => $this->translationsFromData($data, 'description'),
             ]);
 
-            $this->syncTranslations($product, $data);
             $this->storeUploads($request, $product);
         });
 
@@ -197,20 +200,6 @@ class ProductController extends Controller
         ]);
     }
 
-    private function syncTranslations(Product $product, array $data): void
-    {
-        foreach (['en', 'ar'] as $locale) {
-            $product->translations()->updateOrCreate(
-                ['locale' => $locale],
-                [
-                    'title' => $data["title_{$locale}"],
-                    'short_description' => $data["short_description_{$locale}"] ?? null,
-                    'description' => $data["description_{$locale}"] ?? null,
-                ],
-            );
-        }
-    }
-
     private function storeUploads(Request $request, Product $product): void
     {
         if ($request->hasFile('cover')) {
@@ -251,17 +240,15 @@ class ProductController extends Controller
 
     private function serializeProduct(Product $product): array
     {
-        $translations = $product->translations->keyBy('locale');
-
         return [
             'id' => $product->id,
             'sku' => $product->sku,
-            'title_en' => $translations->get('en')?->title,
-            'title_ar' => $translations->get('ar')?->title,
-            'short_description_en' => $translations->get('en')?->short_description,
-            'short_description_ar' => $translations->get('ar')?->short_description,
-            'description_en' => $translations->get('en')?->description,
-            'description_ar' => $translations->get('ar')?->description,
+            'title_en' => $this->translation($product, 'title', 'en'),
+            'title_ar' => $this->translation($product, 'title', 'ar'),
+            'short_description_en' => $this->translation($product, 'short_description', 'en'),
+            'short_description_ar' => $this->translation($product, 'short_description', 'ar'),
+            'description_en' => $this->translation($product, 'description', 'en'),
+            'description_ar' => $this->translation($product, 'description', 'ar'),
             'price' => $product->price,
             'price_cents' => $product->price_cents,
             'currency' => $product->currency,
@@ -270,5 +257,39 @@ class ProductController extends Controller
             'cover_url' => $product->cover?->url,
             'updated_at' => $product->updated_at?->format('Y-m-d H:i'),
         ];
+    }
+
+    private function translationsFromData(array $data, string $attribute): array
+    {
+        $translations = [];
+
+        foreach ($this->locales() as $locale) {
+            $translations[$locale] = $data["{$attribute}_{$locale}"] ?? null;
+        }
+
+        return $translations;
+    }
+
+    private function translation(Product $product, string $attribute, string $locale): mixed
+    {
+        return $product->getTranslation($attribute, $locale, false);
+    }
+
+    private function translatedSearchColumns(array $attributes): array
+    {
+        $columns = [];
+
+        foreach ($attributes as $attribute) {
+            foreach ($this->locales() as $locale) {
+                $columns[] = "{$attribute}->{$locale}";
+            }
+        }
+
+        return $columns;
+    }
+
+    private function locales(): array
+    {
+        return config('app.supported_locales', ['en', 'ar']);
     }
 }

@@ -64,7 +64,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['user', 'items.product.translations', 'bankTransfer.reviewer']);
+        $order->load(['user', 'items.product', 'bankTransfer.reviewer']);
 
         $payments = Payment::query()
             ->where('order_id', $order->id)
@@ -72,7 +72,7 @@ class OrderController extends Controller
             ->get();
 
         $purchases = Purchase::query()
-            ->with(['product.translations', 'user'])
+            ->with(['product', 'user'])
             ->where('order_id', $order->id)
             ->latest('purchased_at')
             ->get();

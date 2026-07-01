@@ -206,7 +206,7 @@ return [
         'empty' => 'No products yet. Create the first feasibility study to start building the catalog.',
         'create' => 'Create Product',
         'edit' => 'Edit Product',
-        'modal_description' => 'English and Arabic content are stored as translation rows.',
+        'modal_description' => 'English and Arabic content are stored as JSON translations.',
         'delete_confirm' => 'Delete :name?',
     ],
     'faqs' => [
@@ -218,7 +218,7 @@ return [
         'empty' => 'No FAQs yet. Add the first bilingual question from the New FAQ button.',
         'create' => 'Create FAQ',
         'edit' => 'Edit FAQ',
-        'modal_description' => 'Both locales are stored in translation rows.',
+        'modal_description' => 'Both locales are stored as JSON translations.',
         'delete_confirm' => 'Delete FAQ: :question?',
     ],
     'settings' => [

@@ -12,7 +12,7 @@ Accepted dashboard design reference: `C:\Users\Amr Achraf\.codex\generated_image
 
 - Use separate `admins` table/model/guard, not an admin column on `users`.
 - Use Spatie roles/permissions on the `admin` guard.
-- Use translation tables for bilingual content: `product_translations`, `faq_translations`, `setting_translations`.
+- Use Spatie Translatable JSON columns for bilingual product, FAQ, and setting content.
 - Use `/public/font.otf` globally through Tailwind/app CSS.
 - Use `lucide-vue-next` for icons; no hand-written SVG icons.
 - Use PayPal JavaScript SDK on checkout and Laravel server endpoints for PayPal Orders create/capture.
@@ -21,17 +21,17 @@ Accepted dashboard design reference: `C:\Users\Amr Achraf\.codex\generated_image
 ## Phases
 
 1. **Project Stack + Admin Foundation**
-   - Install/configure Inertia Laravel, Vue 3, Tailwind, Vite Vue plugin, `lucide-vue-next`, Socialite, and Spatie Permission.
+   - Install/configure Inertia Laravel, Vue 3, Tailwind, Vite Vue plugin, `lucide-vue-next`, Socialite, Spatie Permission, and Spatie Translatable.
    - Add Inertia app shell, global font, Tailwind config, RTL-aware layout helpers.
    - Add `Admin` model, `admins` guard/provider/password broker, `/admin/login`, `/admin/logout`, and protected `/admin` route group.
    - Seed `super-admin` role and admin user: `admin@drasa.test` / `password`.
 
 2. **Database + Domain Models**
-   - Add `products`, `product_translations`, `media`, `faqs`, `faq_translations`, `settings`, `setting_translations`.
+   - Add `products`, `media`, `faqs`, and `settings`; translated content lives in JSON columns on the owning table.
    - Product relations:
      - `cover`: `morphOne(Media::class)` where `collection_name = cover` and `file_type = image`.
      - `documents`: `morphMany(Media::class)` where `collection_name = documents` and `file_type = document`.
-   - Add order-ready tables for later phases: `carts`, `cart_items`, `orders`, `order_items`, `payments`, `bank_transfers`, `purchases`, `oauth_accounts`.
+   - Add order-ready tables for later phases: `carts`, `cart_items`, `orders`, `order_items`, `payments`, `bank_transfers`, `purchases`; OAuth provider columns live on `users`.
 
 3. **Admin Dashboard Core**
    - Implement accepted responsive dashboard UI: sidebar desktop, bottom nav/drawer mobile, top search, EN/AR toggle, admin profile.
@@ -39,7 +39,7 @@ Accepted dashboard design reference: `C:\Users\Amr Achraf\.codex\generated_image
    - Dashboard panels: recent orders, pending bank transfers, product status, quick actions.
 
 4. **Admin CRUD**
-   - Products: translated title/description, price cents, currency, status, cover upload, document uploads.
+   - Products: translated title/description, price cents, status, cover upload, document uploads.
    - FAQs: translated question/answer, status, sort order.
    - Settings: group, input type, key, value; translated values where needed; media settings use `media` record ID in `value`.
    - Admin users/roles screen using permissions:
@@ -47,7 +47,7 @@ Accepted dashboard design reference: `C:\Users\Amr Achraf\.codex\generated_image
 
 5. **Public/User Features**
    - User register/login with name, email, password.
-   - Google/Facebook OAuth via Socialite and `oauth_accounts`.
+   - Google/Facebook OAuth via Socialite and OAuth provider columns on `users`.
    - Product listing/detail pages, cart, checkout entry.
 
 6. **Payments + Delivery**
@@ -69,7 +69,6 @@ Accepted dashboard design reference: `C:\Users\Amr Achraf\.codex\generated_image
 ## Assumptions
 
 - First implementation scope is "Admin Core", not full commerce.
-- Seed default currency is `EGP`; real default currency is editable in settings.
 - Uploaded product documents are stored on a private disk and downloaded through authorized Laravel routes.
-- OAuth tokens are not stored unless required later; only provider, provider ID, avatar, and user link are stored.
+- OAuth tokens are not stored unless required later; only provider, provider ID, and avatar are stored on `users`.
 - Official implementation references: Inertia setup, Laravel Socialite, Spatie Permission, and PayPal JS SDK/Orders API docs.

@@ -3,11 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Translatable\HasTranslations;
 
 class Faq extends Model
 {
+    use HasTranslations;
+
+    public array $translatable = [
+        'question',
+        'answer',
+    ];
+
     protected $fillable = [
+        'question',
+        'answer',
         'status',
         'sort_order',
     ];
@@ -15,9 +24,4 @@ class Faq extends Model
     protected $casts = [
         'sort_order' => 'integer',
     ];
-
-    public function translations(): HasMany
-    {
-        return $this->hasMany(FaqTranslation::class);
-    }
 }

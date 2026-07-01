@@ -24,24 +24,25 @@ class SettingSeeder extends Seeder
                 ['group' => $item['group'], 'key' => $item['key']],
                 [
                     'input_type' => $item['input_type'],
-                    'value' => $item['value'],
                     'is_translatable' => $item['is_translatable'],
                 ],
             );
 
-            if (! $setting->is_translatable) {
-                $setting->translations()->delete();
-
-                continue;
+            if ($setting->is_translatable) {
+                $setting->setTranslations('value', $this->translations($item));
+            } else {
+                $setting->setSharedValue($item['value']);
             }
 
-            foreach (['en', 'ar'] as $locale) {
-                $setting->translations()->updateOrCreate(
-                    ['locale' => $locale],
-                    ['value' => $item[$locale] ?? $item['value']],
-                );
-            }
+            $setting->save();
         }
+    }
+
+    private function translations(array $item): array
+    {
+        return collect(config('app.supported_locales', ['en', 'ar']))
+            ->mapWithKeys(fn (string $locale) => [$locale => $item[$locale] ?? $item['value']])
+            ->all();
     }
 
     private function settings(): array

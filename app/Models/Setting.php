@@ -3,10 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Translatable\HasTranslations;
 
 class Setting extends Model
 {
+    use HasTranslations;
+
+    public array $translatable = [
+        'value',
+    ];
+
     protected $fillable = [
         'group',
         'input_type',
@@ -19,8 +25,17 @@ class Setting extends Model
         'is_translatable' => 'boolean',
     ];
 
-    public function translations(): HasMany
+    public function setSharedValue(mixed $value): self
     {
-        return $this->hasMany(SettingTranslation::class);
+        if ($value === null) {
+            return $this->forgetTranslations('value', true);
+        }
+
+        return $this->setTranslations('value', array_fill_keys($this->supportedLocales(), $value));
+    }
+
+    private function supportedLocales(): array
+    {
+        return config('app.supported_locales', ['en', 'ar']);
     }
 }

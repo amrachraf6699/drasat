@@ -14,7 +14,7 @@ class DemoOrderSeeder extends Seeder
     public function run(): void
     {
         $users = User::query()->take(4)->get();
-        $products = Product::with('translations')->take(4)->get();
+        $products = Product::query()->take(4)->get();
 
         if ($users->isEmpty() || $products->isEmpty()) {
             return;

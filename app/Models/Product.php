@@ -2,20 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Spatie\Translatable\HasTranslations;
 
 class Product extends Model
 {
     use HasFactory;
+    use HasTranslations;
+
+    public array $translatable = [
+        'title',
+        'short_description',
+        'description',
+    ];
 
     protected $fillable = [
         'sku',
         'slug',
+        'title',
+        'short_description',
+        'description',
         'price',
         'price_cents',
         'currency',
@@ -27,11 +38,6 @@ class Product extends Model
         'published_at' => 'datetime',
         'price_cents' => 'integer',
     ];
-
-    public function translations(): HasMany
-    {
-        return $this->hasMany(ProductTranslation::class);
-    }
 
     public function cover(): MorphOne
     {
@@ -63,8 +69,6 @@ class Product extends Model
 
     public function title(string $locale = 'en'): string
     {
-        return $this->translations->firstWhere('locale', $locale)?->title
-            ?? $this->translations->first()?->title
-            ?? 'Untitled product';
+        return $this->getTranslation('title', $locale) ?: 'Untitled product';
     }
 }

@@ -51,7 +51,7 @@ class BankTransferController extends Controller
 
     public function show(BankTransfer $bankTransfer): Response
     {
-        $bankTransfer->load(['user', 'order.items.product.translations', 'reviewer']);
+        $bankTransfer->load(['user', 'order.items.product', 'reviewer']);
 
         return Inertia::render('Admin/Detail', [
             'title' => $bankTransfer->reference_number ?: __('admin.common.no_reference'),

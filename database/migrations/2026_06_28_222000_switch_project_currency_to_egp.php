@@ -13,13 +13,6 @@ return new class extends Migration
                 DB::table($table)->whereIn('currency', ['SAR', 'USD'])->update(['currency' => 'EGP']);
             }
         }
-
-        if (Schema::hasTable('settings')) {
-            DB::table('settings')
-                ->where('group', 'payments')
-                ->where('key', 'default_currency')
-                ->update(['value' => 'EGP']);
-        }
     }
 
     public function down(): void
@@ -28,13 +21,6 @@ return new class extends Migration
             if (Schema::hasTable($table)) {
                 DB::table($table)->where('currency', 'EGP')->update(['currency' => 'SAR']);
             }
-        }
-
-        if (Schema::hasTable('settings')) {
-            DB::table('settings')
-                ->where('group', 'payments')
-                ->where('key', 'default_currency')
-                ->update(['value' => 'SAR']);
         }
     }
 };

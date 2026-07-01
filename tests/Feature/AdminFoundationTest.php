@@ -12,9 +12,9 @@ use App\Models\Setting;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -338,9 +338,9 @@ class AdminFoundationTest extends TestCase
 
         $siteName->refresh();
 
-        $this->assertSame('Dirasat Updated', $siteName->translations()->where('locale', 'en')->value('value'));
-        $this->assertSame('دراسات محدثة', $siteName->translations()->where('locale', 'ar')->value('value'));
-        $this->assertSame('Dirasat', $siteName->value);
+        $this->assertSame('Dirasat Updated', $siteName->getTranslation('value', 'en'));
+        $this->assertSame('دراسات محدثة', $siteName->getTranslation('value', 'ar'));
+        $this->assertSame('Dirasat Updated', $siteName->value);
     }
 
     public function test_admin_cannot_create_or_delete_settings(): void
@@ -432,9 +432,9 @@ class AdminFoundationTest extends TestCase
 
         $product = Product::where('sku', 'FS-TEST-999')->firstOrFail();
 
-        $this->assertSame('Test Feasibility Study', $product->translations()->where('locale', 'en')->value('title'));
+        $this->assertSame('Test Feasibility Study', $product->getTranslation('title', 'en'));
         $this->assertSame(19900, $product->price_cents);
-        $this->assertSame('دراسة جدوى اختبارية', $product->translations()->where('locale', 'ar')->value('title'));
+        $this->assertSame('دراسة جدوى اختبارية', $product->getTranslation('title', 'ar'));
     }
 
     public function test_admin_can_approve_bank_transfer_and_grant_purchase(): void

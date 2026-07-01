@@ -14,14 +14,14 @@ class FaqController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['q', 'status', 'sort']);
-        $query = Faq::query()->with('translations');
+        $query = Faq::query();
 
         $query
             ->when($filters['q'] ?? null, function ($query, string $search) {
-                $query->whereHas('translations', function ($query) use ($search) {
-                    $query
-                        ->where('question', 'like', "%{$search}%")
-                        ->orWhere('answer', 'like', "%{$search}%");
+                $query->where(function ($query) use ($search) {
+                    foreach ($this->translatedSearchColumns(['question', 'answer']) as $column) {
+                        $query->orWhere($column, 'like', "%{$search}%");
+                    }
                 });
             })
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status));
@@ -43,7 +43,6 @@ class FaqController extends Controller
 
     public function show(Faq $faq): Response
     {
-        $faq->load('translations');
         $data = $this->serializeFaq($faq);
 
         return Inertia::render('Admin/Detail', [
@@ -70,11 +69,11 @@ class FaqController extends Controller
                         ['key' => 'question', 'label' => __('admin.common.question_en')],
                         ['key' => 'answer', 'label' => __('admin.common.answer_en')],
                     ],
-                    'rows' => $faq->translations->map(fn ($translation) => [
-                        'id' => $translation->id,
-                        'locale' => $translation->locale,
-                        'question' => $translation->question,
-                        'answer' => $translation->answer,
+                    'rows' => collect($this->locales())->map(fn (string $locale) => [
+                        'id' => "{$faq->id}-{$locale}",
+                        'locale' => $locale,
+                        'question' => $this->translation($faq, 'question', $locale),
+                        'answer' => $this->translation($faq, 'answer', $locale),
                     ])->values(),
                 ],
             ],
@@ -85,10 +84,11 @@ class FaqController extends Controller
     {
         $data = $this->validated($request);
         $faq = Faq::create([
+            'question' => $this->translationsFromData($data, 'question'),
+            'answer' => $this->translationsFromData($data, 'answer'),
             'status' => $data['status'],
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
-        $this->syncTranslations($faq, $data);
 
         return back()->with('status', __('admin.flash.faq_created'));
     }
@@ -97,10 +97,11 @@ class FaqController extends Controller
     {
         $data = $this->validated($request);
         $faq->update([
+            'question' => $this->translationsFromData($data, 'question'),
+            'answer' => $this->translationsFromData($data, 'answer'),
             'status' => $data['status'],
             'sort_order' => $data['sort_order'] ?? 0,
         ]);
-        $this->syncTranslations($faq, $data);
 
         return back()->with('status', __('admin.flash.faq_updated'));
     }
@@ -124,31 +125,50 @@ class FaqController extends Controller
         ]);
     }
 
-    private function syncTranslations(Faq $faq, array $data): void
-    {
-        foreach (['en', 'ar'] as $locale) {
-            $faq->translations()->updateOrCreate(
-                ['locale' => $locale],
-                [
-                    'question' => $data["question_{$locale}"],
-                    'answer' => $data["answer_{$locale}"],
-                ],
-            );
-        }
-    }
-
     private function serializeFaq(Faq $faq): array
     {
-        $translations = $faq->translations->keyBy('locale');
-
         return [
             'id' => $faq->id,
-            'question_en' => $translations->get('en')?->question,
-            'question_ar' => $translations->get('ar')?->question,
-            'answer_en' => $translations->get('en')?->answer,
-            'answer_ar' => $translations->get('ar')?->answer,
+            'question_en' => $this->translation($faq, 'question', 'en'),
+            'question_ar' => $this->translation($faq, 'question', 'ar'),
+            'answer_en' => $this->translation($faq, 'answer', 'en'),
+            'answer_ar' => $this->translation($faq, 'answer', 'ar'),
             'status' => $faq->status,
             'sort_order' => $faq->sort_order,
         ];
+    }
+
+    private function translationsFromData(array $data, string $attribute): array
+    {
+        $translations = [];
+
+        foreach ($this->locales() as $locale) {
+            $translations[$locale] = $data["{$attribute}_{$locale}"] ?? null;
+        }
+
+        return $translations;
+    }
+
+    private function translation(Faq $faq, string $attribute, string $locale): mixed
+    {
+        return $faq->getTranslation($attribute, $locale, false);
+    }
+
+    private function translatedSearchColumns(array $attributes): array
+    {
+        $columns = [];
+
+        foreach ($attributes as $attribute) {
+            foreach ($this->locales() as $locale) {
+                $columns[] = "{$attribute}->{$locale}";
+            }
+        }
+
+        return $columns;
+    }
+
+    private function locales(): array
+    {
+        return config('app.supported_locales', ['en', 'ar']);
     }
 }
