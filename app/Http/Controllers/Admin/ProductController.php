@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Media;
+use App\Http\Resources\Admin\ProductDetailResource;
+use App\Http\Resources\Admin\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,14 +47,11 @@ class ProductController extends Controller
 
         return Inertia::render('Admin/Products', [
             'filters' => $filters,
-            'products' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (Product $product) => $this->serializeProduct($product)),
+            'products' => ProductResource::collection($query->paginate(10)->withQueryString()),
         ]);
     }
 
-    public function show(Product $product): Response
+    public function show(Request $request, Product $product): Response
     {
         $product->load([
             'cover',
@@ -62,61 +60,7 @@ class ProductController extends Controller
             'purchases.order',
         ]);
 
-        $data = $this->serializeProduct($product);
-
-        return Inertia::render('Admin/Detail', [
-            'title' => $data['title_en'] ?: $data['title_ar'] ?: __('admin.products.title'),
-            'subtitle' => $data['sku'] ?: __('admin.common.no_sku'),
-            'backHref' => route('admin.products.index'),
-            'stats' => [
-                ['label' => __('admin.common.price'), 'value' => number_format($product->price_cents / 100, 2).' '.$product->currency],
-                ['label' => __('admin.common.status'), 'value' => __('admin.common.statuses.'.$product->status)],
-                ['label' => __('admin.common.documents'), 'value' => $product->documents->count()],
-                ['label' => __('admin.users.purchases'), 'value' => $product->purchases->count()],
-            ],
-            'fields' => [
-                ['label' => __('admin.common.key'), 'value' => $product->slug],
-                ['label' => __('admin.common.title_en'), 'value' => $data['title_en']],
-                ['label' => __('admin.common.title_ar'), 'value' => $data['title_ar']],
-                ['label' => __('admin.common.short_description_en'), 'value' => $data['short_description_en']],
-                ['label' => __('admin.common.short_description_ar'), 'value' => $data['short_description_ar']],
-                ['label' => __('admin.common.description_en'), 'value' => $data['description_en']],
-                ['label' => __('admin.common.description_ar'), 'value' => $data['description_ar']],
-                ['label' => __('admin.common.created'), 'value' => $product->created_at?->format('Y-m-d H:i')],
-            ],
-            'sections' => [
-                [
-                    'title' => __('admin.users.purchases'),
-                    'columns' => [
-                        ['key' => 'customer', 'label' => __('admin.common.customer')],
-                        ['key' => 'order_number', 'label' => __('admin.common.order')],
-                        ['key' => 'purchased_at', 'label' => __('admin.common.date')],
-                    ],
-                    'rows' => $product->purchases->map(fn ($purchase) => [
-                        'id' => $purchase->id,
-                        'customer' => $purchase->user?->name ?? __('admin.common.guest'),
-                        'order_number' => $purchase->order?->order_number,
-                        'purchased_at' => $purchase->purchased_at?->format('Y-m-d H:i'),
-                        'href' => $purchase->order ? route('admin.orders.show', $purchase->order) : null,
-                    ])->values(),
-                    'showLinks' => true,
-                ],
-                [
-                    'title' => __('admin.common.documents'),
-                    'columns' => [
-                        ['key' => 'name', 'label' => __('admin.common.name')],
-                        ['key' => 'type', 'label' => __('admin.common.input_type')],
-                        ['key' => 'size', 'label' => __('admin.common.total')],
-                    ],
-                    'rows' => $product->documents->map(fn (Media $media) => [
-                        'id' => $media->id,
-                        'name' => $media->original_name,
-                        'type' => $media->mime_type,
-                        'size' => number_format(($media->size ?? 0) / 1024, 1).' KB',
-                    ])->values(),
-                ],
-            ],
-        ]);
+        return Inertia::render('Admin/Detail', ProductDetailResource::make($product)->resolve($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -238,27 +182,6 @@ class ProductController extends Controller
         }
     }
 
-    private function serializeProduct(Product $product): array
-    {
-        return [
-            'id' => $product->id,
-            'sku' => $product->sku,
-            'title_en' => $this->translation($product, 'title', 'en'),
-            'title_ar' => $this->translation($product, 'title', 'ar'),
-            'short_description_en' => $this->translation($product, 'short_description', 'en'),
-            'short_description_ar' => $this->translation($product, 'short_description', 'ar'),
-            'description_en' => $this->translation($product, 'description', 'en'),
-            'description_ar' => $this->translation($product, 'description', 'ar'),
-            'price' => $product->price,
-            'price_cents' => $product->price_cents,
-            'currency' => $product->currency,
-            'status' => $product->status,
-            'documents_count' => $product->documents->count(),
-            'cover_url' => $product->cover?->url,
-            'updated_at' => $product->updated_at?->format('Y-m-d H:i'),
-        ];
-    }
-
     private function translationsFromData(array $data, string $attribute): array
     {
         $translations = [];
@@ -268,11 +191,6 @@ class ProductController extends Controller
         }
 
         return $translations;
-    }
-
-    private function translation(Product $product, string $attribute, string $locale): mixed
-    {
-        return $product->getTranslation($attribute, $locale, false);
     }
 
     private function translatedSearchColumns(array $attributes): array

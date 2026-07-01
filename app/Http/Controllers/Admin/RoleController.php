@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\RoleDetailResource;
+use App\Http\Resources\Admin\RoleResource;
 use App\Models\Admin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,14 +43,11 @@ class RoleController extends Controller
             'filterOptions' => [
                 'permissions' => $this->permissions(),
             ],
-            'roles' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (Role $role) => $this->serializeRole($role)),
+            'roles' => RoleResource::collection($query->paginate(10)->withQueryString()),
         ]);
     }
 
-    public function show(Role $role): Response
+    public function show(Request $request, Role $role): Response
     {
         $this->ensureAdminRole($role);
 
@@ -58,48 +57,7 @@ class RoleController extends Controller
             ->orderBy('name')
             ->get();
 
-        return Inertia::render('Admin/Detail', [
-            'title' => $role->name,
-            'subtitle' => __('admin.roles.subtitle'),
-            'backHref' => route('admin.roles.index'),
-            'stats' => [
-                ['label' => __('admin.common.permissions'), 'value' => $role->permissions->count()],
-                ['label' => __('admin.roles.assigned_admins'), 'value' => $admins->count()],
-                ['label' => __('admin.common.created'), 'value' => $role->created_at?->format('Y-m-d H:i')],
-                ['label' => __('admin.common.updated'), 'value' => $role->updated_at?->format('Y-m-d H:i')],
-            ],
-            'fields' => [
-                ['label' => __('admin.common.name'), 'value' => $role->name],
-                ['label' => __('admin.common.guard'), 'value' => $role->guard_name],
-                ['label' => __('admin.common.permissions'), 'value' => $role->permissions->pluck('name')->join(', ') ?: '-'],
-            ],
-            'sections' => [
-                [
-                    'title' => __('admin.common.permissions'),
-                    'columns' => [
-                        ['key' => 'name', 'label' => __('admin.common.name')],
-                    ],
-                    'rows' => $role->permissions->map(fn (Permission $permission) => [
-                        'id' => $permission->id,
-                        'name' => $permission->name,
-                    ])->values(),
-                ],
-                [
-                    'title' => __('admin.roles.assigned_admins'),
-                    'columns' => [
-                        ['key' => 'name', 'label' => __('admin.common.name')],
-                        ['key' => 'email', 'label' => __('admin.common.email')],
-                    ],
-                    'rows' => $admins->map(fn (Admin $admin) => [
-                        'id' => $admin->id,
-                        'name' => $admin->name,
-                        'email' => $admin->email,
-                        'href' => route('admin.admins.show', $admin),
-                    ])->values(),
-                    'showLinks' => true,
-                ],
-            ],
-        ]);
+        return Inertia::render('Admin/Detail', (new RoleDetailResource($role, $admins))->resolve($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -165,18 +123,6 @@ class RoleController extends Controller
             ->pluck('name')
             ->values()
             ->all();
-    }
-
-    private function serializeRole(Role $role): array
-    {
-        return [
-            'id' => $role->id,
-            'name' => $role->name,
-            'permissions' => $role->permissions->pluck('name')->values(),
-            'permissions_count' => $role->permissions->count(),
-            'admins_count' => Admin::query()->role($role->name, 'admin')->count(),
-            'created_at' => $role->created_at?->format('Y-m-d H:i'),
-        ];
     }
 
     private function ensureAdminRole(Role $role): void

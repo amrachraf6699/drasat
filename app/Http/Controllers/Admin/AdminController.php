@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\AdminAccountResource;
+use App\Http\Resources\Admin\AdminDetailResource;
 use App\Models\Admin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,58 +44,15 @@ class AdminController extends Controller
             'filterOptions' => [
                 'roles' => $this->roles(),
             ],
-            'admins' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (Admin $admin) => $this->serializeAdmin($admin)),
+            'admins' => AdminAccountResource::collection($query->paginate(10)->withQueryString()),
         ]);
     }
 
-    public function show(Admin $admin): Response
+    public function show(Request $request, Admin $admin): Response
     {
         $admin->load(['roles.permissions', 'permissions']);
 
-        return Inertia::render('Admin/Detail', [
-            'title' => $admin->name,
-            'subtitle' => $admin->email,
-            'backHref' => route('admin.admins.index'),
-            'stats' => [
-                ['label' => __('admin.common.status'), 'value' => $admin->is_active ? __('admin.common.statuses.active') : __('admin.common.statuses.inactive')],
-                ['label' => __('admin.common.roles'), 'value' => $admin->roles->pluck('name')->join(', ') ?: '-'],
-                ['label' => __('admin.common.permissions'), 'value' => $admin->getAllPermissions()->count()],
-                ['label' => __('admin.common.created'), 'value' => $admin->created_at?->format('Y-m-d H:i')],
-            ],
-            'fields' => [
-                ['label' => __('admin.common.name'), 'value' => $admin->name],
-                ['label' => __('admin.common.email'), 'value' => $admin->email],
-                ['label' => __('admin.common.status'), 'value' => $admin->is_active ? __('admin.common.statuses.active') : __('admin.common.statuses.inactive')],
-                ['label' => __('admin.common.date'), 'value' => $admin->email_verified_at?->format('Y-m-d H:i')],
-            ],
-            'sections' => [
-                [
-                    'title' => __('admin.common.roles'),
-                    'columns' => [
-                        ['key' => 'name', 'label' => __('admin.common.name')],
-                        ['key' => 'permissions', 'label' => __('admin.common.permissions')],
-                    ],
-                    'rows' => $admin->roles->map(fn (Role $role) => [
-                        'id' => $role->id,
-                        'name' => $role->name,
-                        'permissions' => $role->permissions->pluck('name')->join(', '),
-                    ])->values(),
-                ],
-                [
-                    'title' => __('admin.common.permissions'),
-                    'columns' => [
-                        ['key' => 'name', 'label' => __('admin.common.name')],
-                    ],
-                    'rows' => $admin->getAllPermissions()->map(fn ($permission) => [
-                        'id' => $permission->id,
-                        'name' => $permission->name,
-                    ])->values(),
-                ],
-            ],
-        ]);
+        return Inertia::render('Admin/Detail', AdminDetailResource::make($admin)->resolve($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -164,17 +123,5 @@ class AdminController extends Controller
             ->pluck('name')
             ->values()
             ->all();
-    }
-
-    private function serializeAdmin(Admin $admin): array
-    {
-        return [
-            'id' => $admin->id,
-            'name' => $admin->name,
-            'email' => $admin->email,
-            'is_active' => $admin->is_active,
-            'roles' => $admin->roles->pluck('name')->values(),
-            'created_at' => $admin->created_at?->format('Y-m-d H:i'),
-        ];
     }
 }

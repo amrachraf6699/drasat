@@ -2,7 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Resources\Admin\AuthenticatedAdminResource;
+use App\Http\Resources\Admin\NotificationResource;
+use App\Http\Resources\Admin\PendingTransferNotificationResource;
+use App\Http\Resources\Storefront\CartResource;
+use App\Http\Resources\Storefront\UserResource;
 use App\Models\BankTransfer;
+use App\Services\Storefront\CartService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
@@ -61,13 +67,10 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'admin' => $admin ? [
-                    'id' => $admin->id,
-                    'name' => $admin->name,
-                    'email' => $admin->email,
-                    'roles' => $admin->getRoleNames()->values(),
-                    'permissions' => $admin->getAllPermissions()->pluck('name')->values(),
-                ] : null,
+                'admin' => $admin ? AuthenticatedAdminResource::make($admin)->resolve($request) : null,
+                'user' => $request->user()
+                    ? fn () => UserResource::make($request->user())->resolve($request)
+                    : null,
             ],
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
@@ -76,26 +79,15 @@ class HandleInertiaRequests extends Middleware
             'supportedLocales' => config('app.supported_locales', ['en', 'ar']),
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'translations' => Lang::get('admin'),
+            'storefrontTranslations' => Lang::get('storefront'),
+            'cartSummary' => fn () => Schema::hasTable('carts')
+                ? CartResource::make(app(CartService::class)->summary($request))->resolve($request)
+                : CartResource::make(null)->resolve($request),
             'adminNotifications' => [
                 'unreadCount' => fn () => $notifications->count(),
-                'items' => fn () => $notifications->map(fn ($notification) => [
-                    'id' => $notification->id,
-                    'title' => $notification->data['title'] ?? __('admin.layout.notification'),
-                    'body' => $notification->data['body'] ?? null,
-                    'href' => $notification->data['href'] ?? null,
-                    'created_at' => $notification->created_at?->diffForHumans(),
-                ])->values(),
+                'items' => fn () => NotificationResource::collection($notifications)->resolve($request),
                 'pendingTransferCount' => fn () => $pendingTransfers->count(),
-                'pendingTransfers' => fn () => $pendingTransfers->map(fn (BankTransfer $transfer) => [
-                    'id' => $transfer->id,
-                    'title' => __('admin.layout.pending_transfer_title'),
-                    'body' => __('admin.layout.pending_transfer_body', [
-                        'reference' => $transfer->reference_number ?: __('admin.common.no_reference'),
-                        'customer' => $transfer->user?->name ?? $transfer->order?->user?->name ?? __('admin.common.guest'),
-                    ]),
-                    'href' => route('admin.bank-transfers.index'),
-                    'created_at' => $transfer->created_at?->diffForHumans(),
-                ])->values(),
+                'pendingTransfers' => fn () => PendingTransferNotificationResource::collection($pendingTransfers)->resolve($request),
             ],
         ];
     }

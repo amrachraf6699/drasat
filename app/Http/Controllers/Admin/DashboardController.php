@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\DashboardOrderResource;
+use App\Http\Resources\Admin\DashboardProductResource;
+use App\Http\Resources\Admin\DashboardTransferResource;
 use App\Models\BankTransfer;
 use App\Models\Order;
 use App\Models\Product;
@@ -48,27 +51,14 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(5)
                 ->get()
-                ->map(fn (Order $order) => [
-                    'date' => $order->created_at?->format('Y-m-d H:i'),
-                    'status' => ucfirst($order->status),
-                    'amount' => number_format($order->total_cents / 100, 2).' '.$order->currency,
-                    'product' => $order->items->first()?->title ?? __('admin.common.no_items'),
-                    'customer' => $order->user?->name ?? __('admin.common.guest'),
-                    'number' => '#'.$order->order_number,
-                ]) : [],
+                ->pipe(fn ($orders) => DashboardOrderResource::collection($orders)->resolve($request)) : [],
             'bankTransfers' => $canViewTransfers ? BankTransfer::query()
                 ->with(['user', 'order.user'])
                 ->where('status', 'pending')
                 ->latest()
                 ->limit(5)
                 ->get()
-                ->map(fn (BankTransfer $transfer) => [
-                    'id' => $transfer->id,
-                    'date' => $transfer->created_at?->format('Y-m-d H:i'),
-                    'customer' => $transfer->user?->name ?? $transfer->order?->user?->name ?? __('admin.common.guest'),
-                    'amount' => number_format($transfer->amount_cents / 100, 2).' '.$transfer->currency,
-                    'reference' => '#'.$transfer->reference_number,
-                ]) : [],
+                ->pipe(fn ($transfers) => DashboardTransferResource::collection($transfers)->resolve($request)) : [],
             'productStatus' => $canViewProducts ? [
                 ['label' => __('admin.dashboard.stats.total'), 'value' => Product::count(), 'tone' => 'slate'],
                 ['label' => __('admin.dashboard.stats.active'), 'value' => Product::where('status', 'active')->count(), 'tone' => 'emerald'],
@@ -80,13 +70,7 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(5)
                 ->get()
-                ->map(fn (Product $product) => [
-                    'id' => $product->id,
-                    'title' => $product->title(app()->getLocale()),
-                    'price' => number_format($product->price_cents / 100, 2).' '.$product->currency,
-                    'status' => ucfirst($product->status),
-                    'updated_at' => $product->updated_at?->format('Y-m-d H:i'),
-                ]) : [],
+                ->pipe(fn ($products) => DashboardProductResource::collection($products)->resolve($request)) : [],
         ]);
     }
 }

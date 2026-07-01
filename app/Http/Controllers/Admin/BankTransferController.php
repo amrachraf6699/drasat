@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\BankTransferDetailResource;
+use App\Http\Resources\Admin\BankTransferResource;
 use App\Models\BankTransfer;
 use App\Models\Purchase;
 use Illuminate\Http\RedirectResponse;
@@ -42,70 +44,15 @@ class BankTransferController extends Controller
 
         return Inertia::render('Admin/BankTransfers', [
             'filters' => $filters,
-            'transfers' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (BankTransfer $transfer) => $this->serializeTransfer($transfer)),
+            'transfers' => BankTransferResource::collection($query->paginate(10)->withQueryString()),
         ]);
     }
 
-    public function show(BankTransfer $bankTransfer): Response
+    public function show(Request $request, BankTransfer $bankTransfer): Response
     {
         $bankTransfer->load(['user', 'order.items.product', 'reviewer']);
 
-        return Inertia::render('Admin/Detail', [
-            'title' => $bankTransfer->reference_number ?: __('admin.common.no_reference'),
-            'subtitle' => $bankTransfer->user?->name ?? $bankTransfer->order?->user?->name ?? __('admin.common.guest'),
-            'backHref' => route('admin.bank-transfers.index'),
-            'stats' => [
-                ['label' => __('admin.common.amount'), 'value' => number_format($bankTransfer->amount_cents / 100, 2).' '.$bankTransfer->currency],
-                ['label' => __('admin.common.status'), 'value' => __('admin.common.statuses.'.$bankTransfer->status)],
-                ['label' => __('admin.common.order'), 'value' => $bankTransfer->order?->order_number ?: '-'],
-                ['label' => __('admin.layout.admin_role'), 'value' => $bankTransfer->reviewer?->name ?: '-'],
-            ],
-            'fields' => [
-                ['label' => __('admin.common.reference'), 'value' => $bankTransfer->reference_number],
-                ['label' => __('admin.common.customer'), 'value' => $bankTransfer->user?->name ?? $bankTransfer->order?->user?->name ?? __('admin.common.guest')],
-                ['label' => __('admin.common.email'), 'value' => $bankTransfer->user?->email ?? $bankTransfer->order?->user?->email],
-                ['label' => __('admin.common.created'), 'value' => $bankTransfer->created_at?->format('Y-m-d H:i')],
-                ['label' => __('admin.common.date'), 'value' => $bankTransfer->reviewed_at?->format('Y-m-d H:i')],
-                ['label' => __('admin.common.value'), 'value' => $bankTransfer->admin_note],
-            ],
-            'sections' => [
-                [
-                    'title' => __('admin.common.order'),
-                    'columns' => [
-                        ['key' => 'order_number', 'label' => __('admin.common.order')],
-                        ['key' => 'status', 'label' => __('admin.common.status')],
-                        ['key' => 'total', 'label' => __('admin.common.total')],
-                    ],
-                    'rows' => $bankTransfer->order ? [[
-                        'id' => $bankTransfer->order->id,
-                        'order_number' => $bankTransfer->order->order_number,
-                        'status' => __('admin.common.statuses.'.$bankTransfer->order->status),
-                        'total' => number_format($bankTransfer->order->total_cents / 100, 2).' '.$bankTransfer->order->currency,
-                        'href' => route('admin.orders.show', $bankTransfer->order),
-                    ]] : [],
-                    'showLinks' => true,
-                ],
-                [
-                    'title' => __('admin.common.items'),
-                    'columns' => [
-                        ['key' => 'title', 'label' => __('admin.dashboard.product')],
-                        ['key' => 'quantity', 'label' => __('admin.common.items')],
-                        ['key' => 'total', 'label' => __('admin.common.total')],
-                    ],
-                    'rows' => $bankTransfer->order?->items?->map(fn ($item) => [
-                        'id' => $item->id,
-                        'title' => $item->title,
-                        'quantity' => $item->quantity,
-                        'total' => number_format($item->total_cents / 100, 2).' '.$bankTransfer->order->currency,
-                        'href' => $item->product ? route('admin.products.show', $item->product) : null,
-                    ])->values() ?? [],
-                    'showLinks' => true,
-                ],
-            ],
-        ]);
+        return Inertia::render('Admin/Detail', BankTransferDetailResource::make($bankTransfer)->resolve($request));
     }
 
     public function approve(Request $request, BankTransfer $bankTransfer): RedirectResponse
@@ -160,22 +107,5 @@ class BankTransferController extends Controller
         $bankTransfer->order?->update(['status' => 'cancelled']);
 
         return back()->with('status', __('admin.flash.transfer_rejected'));
-    }
-
-    private function serializeTransfer(BankTransfer $transfer): array
-    {
-        return [
-            'id' => $transfer->id,
-            'reference_number' => $transfer->reference_number,
-            'customer' => $transfer->user?->name ?? $transfer->order?->user?->name ?? __('admin.common.guest'),
-            'email' => $transfer->user?->email ?? $transfer->order?->user?->email,
-            'order_number' => $transfer->order?->order_number,
-            'items' => $transfer->order?->items?->pluck('title')->join(', ') ?: __('admin.common.no_items'),
-            'status' => $transfer->status,
-            'amount' => number_format($transfer->amount_cents / 100, 2).' '.$transfer->currency,
-            'reviewer' => $transfer->reviewer?->name,
-            'created_at' => $transfer->created_at?->format('Y-m-d H:i'),
-            'reviewed_at' => $transfer->reviewed_at?->format('Y-m-d H:i'),
-        ];
     }
 }

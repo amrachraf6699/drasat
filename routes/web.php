@@ -14,6 +14,15 @@ use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Storefront\Auth\LoginController as StorefrontLoginController;
+use App\Http\Controllers\Storefront\Auth\OAuthController as StorefrontOAuthController;
+use App\Http\Controllers\Storefront\Auth\RegisterController as StorefrontRegisterController;
+use App\Http\Controllers\Storefront\CartController as StorefrontCartController;
+use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
+use App\Http\Controllers\Storefront\HomeController as StorefrontHomeController;
+use App\Http\Controllers\Storefront\LibraryController as StorefrontLibraryController;
+use App\Http\Controllers\Storefront\LocaleController as StorefrontLocaleController;
+use App\Http\Controllers\Storefront\ProductController as StorefrontProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,8 +35,31 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/', StorefrontHomeController::class)->name('home');
+Route::post('/locale/{locale}', [StorefrontLocaleController::class, 'update'])->name('locale.update');
+Route::get('/studies', [StorefrontProductController::class, 'index'])->name('studies.index');
+Route::get('/studies/{product:slug}', [StorefrontProductController::class, 'show'])->name('studies.show');
+Route::get('/cart', [StorefrontCartController::class, 'show'])->name('cart.show');
+Route::post('/cart/items', [StorefrontCartController::class, 'store'])->name('cart.items.store');
+Route::delete('/cart/items/{cartItem}', [StorefrontCartController::class, 'destroy'])->name('cart.items.destroy');
+
+Route::middleware('guest:web')->group(function () {
+    Route::get('/login', [StorefrontLoginController::class, 'create'])->name('login');
+    Route::post('/login', [StorefrontLoginController::class, 'store'])->name('login.store');
+    Route::get('/register', [StorefrontRegisterController::class, 'create'])->name('register');
+    Route::post('/register', [StorefrontRegisterController::class, 'store'])->name('register.store');
+    Route::get('/auth/{provider}/redirect', [StorefrontOAuthController::class, 'redirect'])->name('oauth.redirect');
+    Route::get('/auth/{provider}/callback', [StorefrontOAuthController::class, 'callback'])->name('oauth.callback');
+});
+
+Route::middleware('auth:web')->group(function () {
+    Route::post('/logout', [StorefrontLoginController::class, 'destroy'])->name('logout');
+    Route::get('/checkout', [StorefrontCheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('/checkout/bank-transfer', [StorefrontCheckoutController::class, 'bankTransfer'])->name('checkout.bank-transfer');
+    Route::post('/checkout/paypal/create', [StorefrontCheckoutController::class, 'createPaypalOrder'])->name('checkout.paypal.create');
+    Route::post('/checkout/paypal/capture', [StorefrontCheckoutController::class, 'capturePaypalOrder'])->name('checkout.paypal.capture');
+    Route::get('/library', [StorefrontLibraryController::class, 'index'])->name('library.index');
+    Route::get('/library/documents/{media}/download', [StorefrontLibraryController::class, 'download'])->name('library.documents.download');
 });
 
 Route::prefix('manage')->name('admin.')->group(function () {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\FaqDetailResource;
+use App\Http\Resources\Admin\FaqResource;
 use App\Models\Faq;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,50 +36,13 @@ class FaqController extends Controller
 
         return Inertia::render('Admin/Faqs', [
             'filters' => $filters,
-            'faqs' => $query
-                ->paginate(10)
-                ->withQueryString()
-                ->through(fn (Faq $faq) => $this->serializeFaq($faq)),
+            'faqs' => FaqResource::collection($query->paginate(10)->withQueryString()),
         ]);
     }
 
-    public function show(Faq $faq): Response
+    public function show(Request $request, Faq $faq): Response
     {
-        $data = $this->serializeFaq($faq);
-
-        return Inertia::render('Admin/Detail', [
-            'title' => $data['question_en'] ?: $data['question_ar'] ?: __('admin.faqs.title'),
-            'subtitle' => __('admin.common.statuses.'.$faq->status),
-            'backHref' => route('admin.faqs.index'),
-            'stats' => [
-                ['label' => __('admin.common.status'), 'value' => __('admin.common.statuses.'.$faq->status)],
-                ['label' => __('admin.common.sort'), 'value' => $faq->sort_order],
-                ['label' => __('admin.common.created'), 'value' => $faq->created_at?->format('Y-m-d H:i')],
-                ['label' => __('admin.common.date'), 'value' => $faq->updated_at?->format('Y-m-d H:i')],
-            ],
-            'fields' => [
-                ['label' => __('admin.common.question_en'), 'value' => $data['question_en']],
-                ['label' => __('admin.common.answer_en'), 'value' => $data['answer_en']],
-                ['label' => __('admin.common.question_ar'), 'value' => $data['question_ar']],
-                ['label' => __('admin.common.answer_ar'), 'value' => $data['answer_ar']],
-            ],
-            'sections' => [
-                [
-                    'title' => __('admin.common.translated'),
-                    'columns' => [
-                        ['key' => 'locale', 'label' => __('admin.layout.switch_language')],
-                        ['key' => 'question', 'label' => __('admin.common.question_en')],
-                        ['key' => 'answer', 'label' => __('admin.common.answer_en')],
-                    ],
-                    'rows' => collect($this->locales())->map(fn (string $locale) => [
-                        'id' => "{$faq->id}-{$locale}",
-                        'locale' => $locale,
-                        'question' => $this->translation($faq, 'question', $locale),
-                        'answer' => $this->translation($faq, 'answer', $locale),
-                    ])->values(),
-                ],
-            ],
-        ]);
+        return Inertia::render('Admin/Detail', FaqDetailResource::make($faq)->resolve($request));
     }
 
     public function store(Request $request): RedirectResponse
@@ -125,19 +90,6 @@ class FaqController extends Controller
         ]);
     }
 
-    private function serializeFaq(Faq $faq): array
-    {
-        return [
-            'id' => $faq->id,
-            'question_en' => $this->translation($faq, 'question', 'en'),
-            'question_ar' => $this->translation($faq, 'question', 'ar'),
-            'answer_en' => $this->translation($faq, 'answer', 'en'),
-            'answer_ar' => $this->translation($faq, 'answer', 'ar'),
-            'status' => $faq->status,
-            'sort_order' => $faq->sort_order,
-        ];
-    }
-
     private function translationsFromData(array $data, string $attribute): array
     {
         $translations = [];
@@ -147,11 +99,6 @@ class FaqController extends Controller
         }
 
         return $translations;
-    }
-
-    private function translation(Faq $faq, string $attribute, string $locale): mixed
-    {
-        return $faq->getTranslation($attribute, $locale, false);
     }
 
     private function translatedSearchColumns(array $attributes): array

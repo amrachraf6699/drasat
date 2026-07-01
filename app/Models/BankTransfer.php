@@ -39,4 +39,9 @@ class BankTransfer extends Model
     {
         return $this->belongsTo(Admin::class, 'reviewed_by');
     }
+
+    public function proofMedia(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'proof_media_id');
+    }
 }

@@ -174,11 +174,64 @@ class AdminFoundationTest extends TestCase
                     } elseif ($paginatedProp) {
                         $page
                             ->has("{$paginatedProp}.data")
-                            ->has("{$paginatedProp}.total")
-                            ->has("{$paginatedProp}.per_page");
+                            ->has("{$paginatedProp}.meta.total")
+                            ->has("{$paginatedProp}.meta.per_page");
                     }
                 });
         }
+    }
+
+    public function test_admin_inertia_resources_preserve_record_shapes(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $admin = Admin::where('email', 'admin@drasa.test')->firstOrFail();
+        $product = Product::query()->whereHas('purchases')->firstOrFail();
+
+        $this->actingAs($admin, 'admin')
+            ->get('/manage/products')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Products')
+                ->has('products.data.0.id')
+                ->has('products.data.0.title_en')
+                ->has('products.data.0.title_ar')
+                ->has('products.data.0.price')
+                ->has('products.data.0.cover_url')
+                ->has('products.links.next')
+                ->has('products.meta.total')
+            );
+
+        $this->actingAs($admin, 'admin')
+            ->get('/manage/settings')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Settings')
+                ->where('groups.0.key', 'general')
+                ->where('groups.0.settings.0.key', 'site_name')
+                ->has('groups.0.settings.0.value_en')
+                ->has('groups.0.settings.0.value_ar')
+            );
+
+        $this->actingAs($admin, 'admin')
+            ->get("/manage/products/{$product->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Detail')
+                ->has('sections.0.rows.0.customer')
+                ->has('sections.0.rows.0.order_number')
+            );
+
+        $this->actingAs($admin, 'admin')
+            ->get('/manage')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Dashboard')
+                ->where('auth.admin.email', 'admin@drasa.test')
+                ->has('auth.admin.roles')
+                ->has('auth.admin.permissions')
+                ->has('adminNotifications.pendingTransferCount')
+                ->has('adminNotifications.pendingTransfers.0.title')
+            );
     }
 
     public function test_admin_show_pages_render_related_detail_view(): void
