@@ -22,11 +22,13 @@ class DocumentResource extends BaseStorefrontResource
 
     protected function canDownload(Request $request): bool
     {
-        if (! $request->user() || $this->file_type !== 'document' || ! $this->mediable_id) {
+        $user = $request->user('web');
+
+        if (! $user || $this->file_type !== 'document' || ! $this->mediable_id) {
             return false;
         }
 
-        return $request->user()
+        return $user
             ->purchases()
             ->where('product_id', $this->mediable_id)
             ->exists();

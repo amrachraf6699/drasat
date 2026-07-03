@@ -9,6 +9,7 @@ use App\Http\Resources\Storefront\CartResource;
 use App\Http\Resources\Storefront\UserResource;
 use App\Models\BankTransfer;
 use App\Services\Storefront\CartService;
+use App\Support\PublicSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
@@ -45,6 +46,8 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $admin = $request->user('admin');
+        $user = $request->user('web');
+        $isAdminRequest = $request->is('manage') || $request->is('manage/*');
         $pendingTransfers = collect();
         $notifications = collect();
 
@@ -68,8 +71,8 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'admin' => $admin ? AuthenticatedAdminResource::make($admin)->resolve($request) : null,
-                'user' => $request->user()
-                    ? fn () => UserResource::make($request->user())->resolve($request)
+                'user' => $user
+                    ? fn () => UserResource::make($user)->resolve($request)
                     : null,
             ],
             'flash' => [
@@ -80,7 +83,8 @@ class HandleInertiaRequests extends Middleware
             'direction' => app()->getLocale() === 'ar' ? 'rtl' : 'ltr',
             'translations' => Lang::get('admin'),
             'storefrontTranslations' => Lang::get('storefront'),
-            'cartSummary' => fn () => Schema::hasTable('carts')
+            'publicSettings' => fn () => $isAdminRequest ? [] : app(PublicSettings::class)->all(),
+            'cartSummary' => fn () => ! $isAdminRequest && Schema::hasTable('carts')
                 ? CartResource::make(app(CartService::class)->summary($request))->resolve($request)
                 : CartResource::make(null)->resolve($request),
             'adminNotifications' => [

@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\Setting;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -59,6 +60,57 @@ class StorefrontCommerceTest extends TestCase
                 ->where('product.id', $product->id)
                 ->has('product.documents')
                 ->has('faqs')
+            );
+    }
+
+    public function test_public_settings_drive_storefront_branding_social_links_and_analytics(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        Setting::where('group', 'general')->where('key', 'site_name')->firstOrFail()
+            ->setTranslations('value', ['en' => 'Front Brand', 'ar' => 'Front Brand AR'])
+            ->save();
+        Setting::where('group', 'general')->where('key', 'site_logo')->firstOrFail()
+            ->setSharedValue('settings/front-logo.png')
+            ->save();
+        Setting::where('group', 'social')->where('key', 'facebook')->firstOrFail()
+            ->setSharedValue('https://facebook.com/front-brand')
+            ->save();
+        Setting::where('group', 'analytics')->where('key', 'google_analytics_id')->firstOrFail()
+            ->setSharedValue('G-ABC123')
+            ->save();
+        Setting::where('group', 'analytics')->where('key', 'google_tag_manager_id')->firstOrFail()
+            ->setSharedValue('GTM-ABC123')
+            ->save();
+        Setting::where('group', 'analytics')->where('key', 'meta_pixel_id')->firstOrFail()
+            ->setSharedValue('1234567890')
+            ->save();
+
+        $logoUrl = Storage::disk('public')->url('settings/front-logo.png');
+        $response = $this->get('/');
+
+        $response
+            ->assertOk()
+            ->assertSee('Front Brand')
+            ->assertSee('https://www.googletagmanager.com/gtag/js?id=G-ABC123', false)
+            ->assertSee('GTM-ABC123', false)
+            ->assertSee('1234567890', false)
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('publicSettings.general.site_name', 'Front Brand')
+                ->where('publicSettings.general.site_logo_url', $logoUrl)
+                ->where('publicSettings.social.facebook', 'https://facebook.com/front-brand')
+                ->where('publicSettings.analytics.google_analytics_id', 'G-ABC123')
+                ->where('publicSettings.analytics.google_tag_manager_id', 'GTM-ABC123')
+                ->where('publicSettings.analytics.meta_pixel_id', '1234567890')
+            );
+
+        $this->get('/manage/login')
+            ->assertOk()
+            ->assertDontSee('googletagmanager.com', false)
+            ->assertDontSee('connect.facebook.net/en_US/fbevents.js', false)
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Auth/Login')
+                ->where('publicSettings', [])
             );
     }
 

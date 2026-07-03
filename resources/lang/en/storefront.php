@@ -138,6 +138,7 @@ return [
         'remember' => 'Remember me',
         'login' => 'Sign in',
         'register' => 'Create account',
+        'or_continue_with' => 'OR continue with',
         'google' => 'Continue with Google',
         'facebook' => 'Continue with Facebook',
         'need_account' => 'Need an account?',

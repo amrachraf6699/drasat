@@ -39,7 +39,7 @@ class LoginController extends Controller
             ]);
         }
 
-        $this->carts->mergeSessionCartIntoUser($request, $request->user());
+        $this->carts->mergeSessionCartIntoUser($request, $request->user('web'));
         $request->session()->regenerate();
 
         return redirect()->intended(route('library.index'))->with('status', __('storefront.auth.login_success'));

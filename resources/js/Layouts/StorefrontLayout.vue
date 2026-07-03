@@ -4,11 +4,15 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
     ChevronDown,
+    Facebook,
     Globe2,
     Library,
+    Linkedin,
     LogOut,
     Menu,
+    MessageCircle,
     ShoppingCart,
+    Twitter,
     UserRound,
     X,
 } from 'lucide-vue-next';
@@ -26,12 +30,28 @@ const user = computed(() => page.props.auth?.user);
 const cartCount = computed(() => page.props.cartSummary?.count || 0);
 const flashStatus = computed(() => page.props.flash?.status);
 const currentUrl = computed(() => page.url || '/');
+const publicSettings = computed(() => page.props.publicSettings || {});
+const siteName = computed(() => publicSettings.value.general?.site_name || t('common.brand'));
+const siteLogoUrl = computed(() => publicSettings.value.general?.site_logo_url);
+const siteInitial = computed(() => (siteName.value || 'D').trim().charAt(0).toUpperCase());
 
 const navItems = computed(() => [
     { label: t('layout.studies'), href: '/studies' },
     { label: t('layout.faq'), href: '/#faq' },
     { label: t('layout.library'), href: '/library' },
 ]);
+
+const socialLinks = computed(() => {
+    const social = publicSettings.value.social || {};
+
+    return [
+        { label: 'Facebook', href: social.facebook, icon: Facebook },
+        { label: 'X', href: social.x, icon: Twitter },
+        { label: 'WhatsApp', href: social.whatsapp, icon: MessageCircle },
+        { label: 'LinkedIn', href: social.linkedin, icon: Linkedin },
+        { label: 'Twitter', href: social.twitter, icon: Twitter },
+    ].filter((item) => item.href);
+});
 
 onMounted(() => {
     document.documentElement.dir = direction.value;
@@ -97,10 +117,12 @@ function clearToastTimer() {
         <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
             <div class="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Link href="/" class="flex items-center gap-3">
-                    <div class="grid h-11 w-11 place-items-center rounded-lg border border-emerald-100 bg-emerald-700 text-xl font-bold text-white shadow-sm">D</div>
+                    <div class="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border border-emerald-100 text-xl font-bold text-white shadow-sm">
+                        <img v-if="siteLogoUrl" :src="siteLogoUrl" :alt="`${siteName} logo`" class="h-full w-full object-contain">
+                        <span v-else>{{ siteInitial }}</span>
+                    </div>
                     <div>
-                        <p class="text-2xl font-semibold leading-none text-slate-950">{{ t('common.brand') }}</p>
-                        <p class="mt-1 hidden text-xs font-medium text-slate-500 sm:block">{{ t('layout.tagline') }}</p>
+                        <p class="text-2xl font-semibold leading-none text-slate-950">{{ siteName }}</p>
                     </div>
                 </Link>
 
@@ -175,8 +197,11 @@ function clearToastTimer() {
         >
             <div class="mb-6 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="grid h-10 w-10 place-items-center rounded-lg bg-emerald-700 text-lg font-bold text-white">D</div>
-                    <p class="text-xl font-semibold">{{ t('common.brand') }}</p>
+                    <div class="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg text-lg font-bold text-white">
+                        <img v-if="siteLogoUrl" :src="siteLogoUrl" :alt="`${siteName} logo`" class="h-full w-full object-contain">
+                        <span v-else>{{ siteInitial }}</span>
+                    </div>
+                    <p class="text-xl font-semibold">{{ siteName }}</p>
                 </div>
                 <button type="button" class="grid h-10 w-10 place-items-center rounded-lg border border-slate-200" @click="mobileOpen = false">
                     <X class="h-5 w-5" />
@@ -212,7 +237,29 @@ function clearToastTimer() {
 
         <footer class="border-t border-slate-200 bg-white">
             <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-                <p>{{ t('common.brand') }} · {{ t('layout.tagline') }}</p>
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center gap-3 text-slate-700">
+                        <div class="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-lg text-sm font-bold text-white">
+                            <img v-if="siteLogoUrl" :src="siteLogoUrl" :alt="`${siteName} logo`" class="h-full w-full object-contain">
+                            <span v-else>{{ siteInitial }}</span>
+                        </div>
+                        <p class="font-semibold">{{ siteName }}</p>
+                    </div>
+                    <div v-if="socialLinks.length" class="flex items-center gap-2">
+                        <a
+                            v-for="item in socialLinks"
+                            :key="item.label"
+                            :href="item.href"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800"
+                            :aria-label="item.label"
+                            :title="item.label"
+                        >
+                            <component :is="item.icon" class="h-4 w-4" />
+                        </a>
+                    </div>
+                </div>
                 <div class="flex items-center gap-4">
                     <Link href="/studies" class="hover:text-emerald-800">{{ t('layout.studies') }}</Link>
                     <Link href="/#faq" class="hover:text-emerald-800">{{ t('layout.faq') }}</Link>

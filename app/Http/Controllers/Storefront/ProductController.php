@@ -17,14 +17,15 @@ class ProductController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['q', 'sort']);
+        $user = $request->user('web');
         $query = Product::query()
             ->with(['cover', 'documents'])
             ->withCount('documents')
             ->where('status', 'active');
 
-        if ($request->user()) {
+        if ($user) {
             $query->withExists([
-                'purchases as purchased_by_user' => fn ($query) => $query->where('user_id', $request->user()->id),
+                'purchases as purchased_by_user' => fn ($query) => $query->where('user_id', $user->id),
             ]);
         }
 

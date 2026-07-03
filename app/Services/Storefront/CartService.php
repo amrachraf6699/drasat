@@ -12,16 +12,17 @@ class CartService
 {
     public function activeCart(Request $request, bool $create = true): ?Cart
     {
+        $user = $request->user('web');
         $query = Cart::query()->where('status', 'active');
 
-        if ($request->user()) {
-            $query->where('user_id', $request->user()->id);
+        if ($user) {
+            $query->where('user_id', $user->id);
 
             $cart = $query->first();
 
             if (! $cart && $create) {
                 $cart = Cart::create([
-                    'user_id' => $request->user()->id,
+                    'user_id' => $user->id,
                     'session_id' => null,
                     'status' => 'active',
                 ]);
@@ -47,7 +48,7 @@ class CartService
             }
         }
 
-        if ($cart && ! $request->user()) {
+        if ($cart && ! $user) {
             $request->session()->put('cart_id', $cart->id);
         }
 

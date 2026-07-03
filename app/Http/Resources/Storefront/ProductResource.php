@@ -29,7 +29,9 @@ class ProductResource extends BaseStorefrontResource
 
     protected function isPurchasedBy(Request $request): bool
     {
-        if (! $request->user()) {
+        $user = $request->user('web');
+
+        if (! $user) {
             return false;
         }
 
@@ -37,7 +39,7 @@ class ProductResource extends BaseStorefrontResource
             return (bool) $this->purchased_by_user;
         }
 
-        return $request->user()
+        return $user
             ->purchases()
             ->where('product_id', $this->id)
             ->exists();

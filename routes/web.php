@@ -19,6 +19,7 @@ use App\Http\Controllers\Storefront\Auth\OAuthController as StorefrontOAuthContr
 use App\Http\Controllers\Storefront\Auth\RegisterController as StorefrontRegisterController;
 use App\Http\Controllers\Storefront\CartController as StorefrontCartController;
 use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
+use App\Http\Controllers\Storefront\FaqController as StorefrontFaqController;
 use App\Http\Controllers\Storefront\HomeController as StorefrontHomeController;
 use App\Http\Controllers\Storefront\LibraryController as StorefrontLibraryController;
 use App\Http\Controllers\Storefront\LocaleController as StorefrontLocaleController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Storefront\ProductController as StorefrontProductContro
 */
 
 Route::get('/', StorefrontHomeController::class)->name('home');
+Route::get('/faq', StorefrontFaqController::class)->name('faq.index');
 Route::post('/locale/{locale}', [StorefrontLocaleController::class, 'update'])->name('locale.update');
 Route::get('/studies', [StorefrontProductController::class, 'index'])->name('studies.index');
 Route::get('/studies/{product:slug}', [StorefrontProductController::class, 'show'])->name('studies.show');

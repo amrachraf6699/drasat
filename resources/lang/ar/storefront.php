@@ -138,6 +138,7 @@ return [
         'remember' => 'تذكرني',
         'login' => 'تسجيل الدخول',
         'register' => 'إنشاء حساب',
+        'or_continue_with' => 'أو تابع باستخدام',
         'google' => 'المتابعة عبر Google',
         'facebook' => 'المتابعة عبر Facebook',
         'need_account' => 'تحتاج حساباً؟',

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use App\Models\BankTransfer;
+use App\Models\Cart;
 use App\Models\Faq;
 use App\Models\Order;
 use App\Models\Product;
@@ -88,6 +89,36 @@ class AdminFoundationTest extends TestCase
                 ->has('bankTransfers')
                 ->has('productStatus')
                 ->has('products')
+            );
+    }
+
+    public function test_admin_pages_do_not_resolve_storefront_cart_against_admin_guard(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $admin = Admin::where('email', 'admin@drasa.test')->firstOrFail();
+        $user = User::query()->find($admin->id) ?? User::factory()->create(['id' => $admin->id]);
+        $product = Product::query()->where('status', 'active')->firstOrFail();
+        $cart = Cart::create([
+            'user_id' => $user->id,
+            'session_id' => null,
+            'status' => 'active',
+        ]);
+
+        $cart->items()->create([
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unit_price_cents' => $product->price_cents,
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->get('/manage')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Dashboard')
+                ->where('auth.user', null)
+                ->where('cartSummary.count', 0)
+                ->where('cartSummary.is_empty', true)
             );
     }
 
