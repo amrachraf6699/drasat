@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { CheckCircle2, Clock3, Download, FileText, LogOut, UserRound } from 'lucide-vue-next';
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue';
@@ -19,6 +20,7 @@ defineProps({
 const page = usePage();
 const { t } = useStorefrontTranslations();
 const user = page.props.auth?.user;
+const supportEmail = computed(() => page.props.publicSettings?.general?.support_email || 'support@drasa.test');
 
 function logout() {
     router.post('/logout');
@@ -131,7 +133,7 @@ function logout() {
                         <Link href="/studies" class="mt-5 inline-flex h-11 items-center rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white">{{ t('home.browse') }}</Link>
                     </div>
 
-                    <p class="mt-6 text-sm text-slate-500">{{ t('library.help', { email: 'support@drasa.test' }) }}</p>
+                    <p class="mt-6 text-sm text-slate-500">{{ t('library.help', { email: supportEmail }) }}</p>
                 </div>
             </div>
         </section>

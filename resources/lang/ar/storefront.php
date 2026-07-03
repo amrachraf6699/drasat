@@ -10,6 +10,7 @@ return [
         'remove' => 'حذف',
         'continue' => 'متابعة',
         'back' => 'رجوع',
+        'home' => 'الرئيسية',
         'close' => 'إغلاق',
         'empty' => 'لا توجد بيانات بعد.',
     ],
@@ -68,6 +69,7 @@ return [
         'default_file_report' => 'التقرير الكامل.pdf',
         'default_file_model' => 'النموذج المالي.xlsx',
         'default_file_summary' => 'الملخص التنفيذي.pdf',
+        'no_documents' => 'لم يتم رفع مستندات لهذه الدراسة بعد.',
     ],
     'faq' => [
         'title' => 'الأسئلة الشائعة',
@@ -96,6 +98,7 @@ return [
         'total' => 'الإجمالي',
         'checkout' => 'المتابعة للدفع',
         'add_another' => 'إضافة دراسة أخرى',
+        'quantity' => 'الكمية: :count',
         'empty' => 'سلتك فارغة.',
     ],
     'checkout' => [

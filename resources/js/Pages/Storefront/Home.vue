@@ -37,8 +37,16 @@ const { t } = useStorefrontTranslations();
                     </div>
                 </div>
 
-                <div class="grid gap-5 md:grid-cols-2">
+                <div v-if="products.length" class="grid gap-5 md:grid-cols-2">
                     <ProductCard v-for="product in products" :key="product.id" :product="product" />
+                </div>
+                <div v-else class="flex min-h-80 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+                    <div>
+                        <p class="text-lg font-semibold text-slate-950">{{ t('studies.empty') }}</p>
+                        <Link href="/studies" class="mt-5 inline-flex h-11 items-center justify-center rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white hover:bg-emerald-800">
+                            {{ t('home.browse') }}
+                        </Link>
+                    </div>
                 </div>
             </div>
         </section>

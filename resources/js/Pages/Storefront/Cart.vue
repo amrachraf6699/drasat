@@ -36,7 +36,7 @@ function removeItem(item) {
                             <div class="min-w-0">
                                 <p class="text-xl font-semibold text-slate-950">{{ item.product.title }}</p>
                                 <p class="mt-2 text-sm leading-6 text-slate-600">{{ item.product.short_description }}</p>
-                                <p class="mt-3 text-sm text-slate-500">Qty: {{ item.quantity }}</p>
+                                <p class="mt-3 text-sm text-slate-500">{{ t('cart.quantity', { count: item.quantity }) }}</p>
                             </div>
                             <div class="flex flex-row items-center justify-between gap-4 sm:flex-col sm:items-end">
                                 <p class="text-lg font-semibold text-emerald-800">{{ item.total }}</p>

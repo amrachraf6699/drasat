@@ -10,11 +10,21 @@ class ProductResource extends BaseStorefrontResource
     {
         $documentsCount = $this->documents_count
             ?? ($this->resource->relationLoaded('documents') ? $this->documents->count() : $this->documents()->count());
+        $documentExtensions = $this->resource->relationLoaded('documents')
+            ? $this->documents
+                ->map(fn ($document) => pathinfo((string) ($document->original_name ?: $document->path), PATHINFO_EXTENSION))
+                ->filter()
+                ->map(fn ($extension) => strtoupper($extension))
+                ->unique()
+                ->values()
+                ->all()
+            : [];
 
         return [
             'id' => $this->id,
+            'sku' => $this->sku,
             'slug' => $this->slug,
-            'title' => $this->translated($this->resource, 'title') ?: 'Untitled study',
+            'title' => $this->translated($this->resource, 'title') ?: __('storefront.product.untitled'),
             'short_description' => $this->translated($this->resource, 'short_description'),
             'description' => $this->translated($this->resource, 'description'),
             'price' => $this->money($this->price_cents, $this->currency),
@@ -22,6 +32,8 @@ class ProductResource extends BaseStorefrontResource
             'currency' => $this->currency,
             'cover_url' => $this->cover?->url,
             'documents_count' => $documentsCount,
+            'document_extensions' => $documentExtensions,
+            'published_at' => $this->published_at?->toDateString(),
             'is_purchased' => $this->isPurchasedBy($request),
             'href' => route('studies.show', $this->resource),
         ];

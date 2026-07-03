@@ -10,6 +10,7 @@ return [
         'remove' => 'Remove',
         'continue' => 'Continue',
         'back' => 'Back',
+        'home' => 'Home',
         'close' => 'Close',
         'empty' => 'Nothing to show yet.',
     ],
@@ -68,6 +69,7 @@ return [
         'default_file_report' => 'Full Report.pdf',
         'default_file_model' => 'Financial Model.xlsx',
         'default_file_summary' => 'Executive Summary.pdf',
+        'no_documents' => 'No documents have been uploaded for this study yet.',
     ],
     'faq' => [
         'title' => 'Frequently asked questions',
@@ -96,6 +98,7 @@ return [
         'total' => 'Total',
         'checkout' => 'Continue to checkout',
         'add_another' => 'Add another study',
+        'quantity' => 'Qty: :count',
         'empty' => 'Your cart is empty.',
     ],
     'checkout' => [

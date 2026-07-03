@@ -1,6 +1,6 @@
 <script setup>
 import { Link, router } from '@inertiajs/vue3';
-import { CheckCircle2, FileText, Heart, ShoppingCart } from 'lucide-vue-next';
+import { CheckCircle2, Eye, FileText, ShoppingCart } from 'lucide-vue-next';
 import StudyCover from './StudyCover.vue';
 import { useStorefrontTranslations } from '@/Composables/useStorefrontTranslations';
 
@@ -36,11 +36,11 @@ function addToCart(product) {
             </div>
 
             <div class="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-                <span class="inline-flex items-center gap-2">
+                <span v-if="product.document_extensions?.length" class="inline-flex items-center gap-2">
                     <FileText class="h-4 w-4" />
-                    {{ t('product.pdf') }}
+                    {{ product.document_extensions.join(', ') }}
                 </span>
-                <span>{{ t('studies.documents', { count: product.documents_count || 3 }) }}</span>
+                <span>{{ t('studies.documents', { count: product.documents_count || 0 }) }}</span>
             </div>
 
             <div class="flex items-center justify-between gap-3">
@@ -51,11 +51,20 @@ function addToCart(product) {
                 </div>
             </div>
 
-            <div class="grid grid-cols-[44px_1fr] gap-3">
-                <button type="button" class="grid h-11 place-items-center rounded-lg border border-slate-300 text-slate-700 transition hover:border-emerald-700 hover:text-emerald-800">
-                    <Heart class="h-5 w-5" />
-                </button>
+            <div class="grid gap-3 sm:grid-cols-[44px_1fr]">
+                <Link :href="product.href" class="grid h-11 place-items-center rounded-lg border border-slate-300 text-slate-700 transition hover:border-emerald-700 hover:text-emerald-800" :aria-label="t('common.view')" :title="t('common.view')">
+                    <Eye class="h-5 w-5" />
+                </Link>
+                <Link
+                    v-if="product.is_purchased"
+                    href="/library"
+                    class="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-700 px-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"
+                >
+                    <CheckCircle2 class="h-5 w-5" />
+                    {{ t('layout.library') }}
+                </Link>
                 <button
+                    v-else
                     type="button"
                     class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
                     @click="addToCart(product)"

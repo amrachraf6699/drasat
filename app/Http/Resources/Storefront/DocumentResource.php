@@ -14,10 +14,24 @@ class DocumentResource extends BaseStorefrontResource
             'mime_type' => $this->mime_type,
             'size' => $this->fileSize($this->size),
             'file_type' => $this->file_type,
+            'extension' => $this->extension(),
             'download_url' => $this->canDownload($request)
                 ? route('library.documents.download', $this->resource)
                 : null,
         ];
+    }
+
+    protected function extension(): ?string
+    {
+        $name = $this->original_name ?: $this->path;
+
+        if (! $name) {
+            return null;
+        }
+
+        $extension = pathinfo((string) $name, PATHINFO_EXTENSION);
+
+        return $extension ? strtoupper($extension) : null;
     }
 
     protected function canDownload(Request $request): bool

@@ -130,7 +130,7 @@ function renderPayPalButtons() {
                             <StudyCover :product="item.product" compact />
                             <div>
                                 <p class="text-xl font-semibold text-slate-950">{{ item.product.title }}</p>
-                                <p class="mt-2 text-sm text-slate-500">Qty: {{ item.quantity }}</p>
+                                <p class="mt-2 text-sm text-slate-500">{{ t('cart.quantity', { count: item.quantity }) }}</p>
                             </div>
                             <p class="text-lg font-semibold text-emerald-800">{{ item.total }}</p>
                         </article>
