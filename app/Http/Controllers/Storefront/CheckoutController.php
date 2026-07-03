@@ -78,6 +78,12 @@ class CheckoutController extends Controller
         $paypalOrderId = $paypalOrder['id'] ?? null;
 
         if (! $paypalOrderId) {
+            Log::error('PayPal order creation failed.', [
+                'response' => $response ?? null,
+                'request' => $payload ?? null, // if available
+                'user_id' => auth()->id(),
+            ]);
+
             throw ValidationException::withMessages([
                 'paypal' => __('storefront.checkout.paypal_failed'),
             ]);

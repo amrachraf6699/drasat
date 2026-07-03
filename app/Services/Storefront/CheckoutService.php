@@ -86,17 +86,27 @@ class CheckoutService
                 return $payment->order;
             }
 
-            if (($capture['status'] ?? null) !== 'COMPLETED') {
+           if (($capture['status'] ?? null) !== 'COMPLETED') {
+                Log::error('PayPal capture failed.', [
+                    'payment_id' => $payment->id,
+                    'paypal_order_id' => $payment->transaction_reference,
+                    'capture_status' => $capture['status'] ?? null,
+                    'capture_response' => $capture,
+                ]);
+
                 $payment->update([
                     'status' => 'failed',
-                    'payload' => [...($payment->payload ?? []), 'capture_response' => $capture],
+                    'payload' => [
+                        ...($payment->payload ?? []),
+                        'capture_response' => $capture,
+                    ],
                 ]);
 
                 throw ValidationException::withMessages([
                     'paypal' => __('storefront.checkout.paypal_failed'),
                 ]);
             }
-
+            
             [$currency, $amountCents] = $this->capturedAmount($capture);
 
             if ($currency !== $payment->currency || $amountCents !== $payment->amount_cents) {
