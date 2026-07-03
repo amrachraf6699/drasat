@@ -47,8 +47,7 @@ return [
         'client_id' => env('PAYPAL_CLIENT_ID'),
         'secret' => env('PAYPAL_SECRET'),
         'mode' => env('PAYPAL_MODE', 'sandbox'),
-        'checkout_currency' => env('PAYPAL_CHECKOUT_CURRENCY', 'USD'),
-        'egp_to_checkout_rate' => env('PAYPAL_EGP_TO_USD_RATE', 0),
+        'checkout_currency' => env('PAYPAL_CHECKOUT_CURRENCY', 'EGP'),
     ],
 
 ];

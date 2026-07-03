@@ -107,7 +107,7 @@ return [
         'payment_method' => 'طريقة الدفع',
         'paypal' => 'PayPal',
         'paypal_help' => 'ادفع بأمان عبر حساب PayPal.',
-        'paypal_unavailable' => 'PayPal غير متاح حتى يتم ضبط تحويل العملة.',
+        'paypal_unavailable' => 'PayPal غير متاح حتى يتم ضبط الإعدادات.',
         'bank_transfer' => 'تحويل بنكي',
         'bank_transfer_help' => 'ارفع إثبات الدفع أو أدخل رقم التحويل.',
         'reference' => 'مرجع الدفع',
@@ -123,7 +123,6 @@ return [
         'paypal_failed' => 'تعذر إكمال دفع PayPal.',
         'paypal_amount_mismatch' => 'قيمة PayPal لا تطابق الطلب.',
         'paypal_currency_unsupported' => 'عملة هذا الطلب غير مدعومة في PayPal.',
-        'paypal_rate_missing' => 'لم يتم ضبط تحويل العملة لـ PayPal.',
         'paypal_processing' => 'جاري معالجة دفع PayPal...',
     ],
     'library' => [

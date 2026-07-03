@@ -107,7 +107,7 @@ return [
         'payment_method' => 'Payment method',
         'paypal' => 'PayPal',
         'paypal_help' => 'Pay securely with your PayPal account.',
-        'paypal_unavailable' => 'PayPal is unavailable until checkout currency conversion is configured.',
+        'paypal_unavailable' => 'PayPal is unavailable until it is configured.',
         'bank_transfer' => 'Bank transfer',
         'bank_transfer_help' => 'Upload a payment proof or enter a transfer reference.',
         'reference' => 'Payment reference',
@@ -123,7 +123,6 @@ return [
         'paypal_failed' => 'PayPal payment could not be completed.',
         'paypal_amount_mismatch' => 'PayPal amount did not match this order.',
         'paypal_currency_unsupported' => 'PayPal checkout does not support this order currency.',
-        'paypal_rate_missing' => 'PayPal currency conversion is not configured.',
         'paypal_processing' => 'Processing PayPal payment...',
     ],
     'library' => [
