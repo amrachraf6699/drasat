@@ -37,9 +37,9 @@ class CheckoutController extends Controller
         return Inertia::render('Storefront/Checkout', [
             'cart' => CartResource::make($cart)->resolve($request),
             'paypal' => [
-                'enabled' => $this->paypal->isConfigured(),
+                'enabled' => $this->paypal->isConfigured() && (float) config('services.paypal.egp_to_checkout_rate', 0) > 0,
                 'client_id' => config('services.paypal.client_id'),
-                'currency' => config('services.paypal.checkout_currency', 'EGP'),
+                'currency' => config('services.paypal.checkout_currency', 'USD'),
             ],
         ]);
     }

@@ -183,12 +183,13 @@ class StorefrontCommerceTest extends TestCase
         $this->assertSame('converted', Cart::where('user_id', $user->id)->latest()->firstOrFail()->status);
     }
 
-    public function test_paypal_checkout_uses_order_currency_and_grants_purchase_on_capture(): void
+    public function test_paypal_checkout_uses_converted_currency_and_grants_purchase_on_capture(): void
     {
         config([
             'services.paypal.client_id' => 'client',
             'services.paypal.secret' => 'secret',
-            'services.paypal.checkout_currency' => 'EGP',
+            'services.paypal.checkout_currency' => 'USD',
+            'services.paypal.egp_to_checkout_rate' => 0.02,
         ]);
 
         Http::fake([
@@ -200,8 +201,8 @@ class StorefrontCommerceTest extends TestCase
                     'payments' => [
                         'captures' => [[
                             'amount' => [
-                                'currency_code' => 'EGP',
-                                'value' => '1250.00',
+                                'currency_code' => 'USD',
+                                'value' => '25.00',
                             ],
                         ]],
                     ],
@@ -222,8 +223,8 @@ class StorefrontCommerceTest extends TestCase
             ->json();
 
         $payment = Payment::findOrFail($createResponse['payment_id']);
-        $this->assertSame('EGP', $payment->currency);
-        $this->assertSame(125000, $payment->amount_cents);
+        $this->assertSame('USD', $payment->currency);
+        $this->assertSame(2500, $payment->amount_cents);
         $this->assertSame('PAYPAL-ORDER-1', $payment->provider_reference);
 
         Http::assertSent(function ($request) {
@@ -234,8 +235,8 @@ class StorefrontCommerceTest extends TestCase
             return data_get($request->data(), 'application_context.shipping_preference') === 'NO_SHIPPING'
                 && data_get($request->data(), 'application_context.user_action') === 'PAY_NOW'
                 && data_get($request->data(), 'purchase_units.0.items.0.category') === 'DIGITAL_GOODS'
-                && data_get($request->data(), 'purchase_units.0.amount.breakdown.item_total.currency_code') === 'EGP'
-                && data_get($request->data(), 'purchase_units.0.amount.breakdown.item_total.value') === '1250.00';
+                && data_get($request->data(), 'purchase_units.0.amount.breakdown.item_total.currency_code') === 'USD'
+                && data_get($request->data(), 'purchase_units.0.amount.breakdown.item_total.value') === '25.00';
         });
 
         $this->actingAs($user)
@@ -256,7 +257,8 @@ class StorefrontCommerceTest extends TestCase
         config([
             'services.paypal.client_id' => 'client',
             'services.paypal.secret' => 'secret',
-            'services.paypal.checkout_currency' => 'EGP',
+            'services.paypal.checkout_currency' => 'USD',
+            'services.paypal.egp_to_checkout_rate' => 0.02,
         ]);
 
         Http::fake([

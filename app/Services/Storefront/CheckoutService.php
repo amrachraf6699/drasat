@@ -46,26 +46,22 @@ class CheckoutService
     {
         return DB::transaction(function () use ($user, $cart) {
             $order = $this->createOrderFromCart($user, $cart, 'paypal');
-            $paypalCurrency = strtoupper((string) config('services.paypal.checkout_currency', $order->currency));
-
-            if ($paypalCurrency !== $order->currency) {
-                throw ValidationException::withMessages([
-                    'paypal' => __('storefront.checkout.paypal_currency_unsupported'),
-                ]);
-            }
+            $paypalCurrency = strtoupper((string) config('services.paypal.checkout_currency', 'USD'));
+            $paypalAmountCents = $this->paypalAmountCents($order, $paypalCurrency);
 
             return Payment::create([
                 'order_id' => $order->id,
                 'provider' => 'paypal',
                 'provider_reference' => null,
                 'status' => 'pending',
-                'amount_cents' => $order->total_cents,
+                'amount_cents' => $paypalAmountCents,
                 'currency' => $paypalCurrency,
                 'payload' => [
                     'local_currency' => $order->currency,
                     'local_total_cents' => $order->total_cents,
                     'paypal_currency' => $paypalCurrency,
-                    'paypal_amount_cents' => $order->total_cents,
+                    'paypal_amount_cents' => $paypalAmountCents,
+                    'egp_to_paypal_rate' => (float) config('services.paypal.egp_to_checkout_rate', 0),
                 ],
             ]);
         });
@@ -228,6 +224,29 @@ class CheckoutService
                 ],
             );
         }
+    }
+
+    protected function paypalAmountCents(Order $order, string $paypalCurrency): int
+    {
+        if ($order->currency === $paypalCurrency) {
+            return $order->total_cents;
+        }
+
+        if ($order->currency !== 'EGP') {
+            throw ValidationException::withMessages([
+                'paypal' => __('storefront.checkout.paypal_currency_unsupported'),
+            ]);
+        }
+
+        $rate = (float) config('services.paypal.egp_to_checkout_rate', 0);
+
+        if ($rate <= 0) {
+            throw ValidationException::withMessages([
+                'paypal' => __('storefront.checkout.paypal_rate_missing'),
+            ]);
+        }
+
+        return (int) round(($order->total_cents / 100) * $rate * 100);
     }
 
     protected function capturedAmount(array $capture): array
