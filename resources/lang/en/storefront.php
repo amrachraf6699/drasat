@@ -69,6 +69,24 @@ return [
         'default_file_model' => 'Financial Model.xlsx',
         'default_file_summary' => 'Executive Summary.pdf',
     ],
+    'faq' => [
+        'title' => 'Frequently asked questions',
+        'subtitle' => 'Find clear answers about buying studies, payment review, and downloading your files.',
+        'search_placeholder' => 'Search questions...',
+        'all_questions' => 'All questions',
+        'questions_count' => ':count answers',
+        'empty' => 'No answers match your search.',
+        'support_title' => 'Need a direct answer?',
+        'support_text' => 'Send us your question and our support team will help.',
+        'contact_support' => 'Contact support',
+        'browse_studies' => 'Browse studies',
+        'topics_title' => 'Popular topics',
+        'topics' => [
+            'payments' => 'Payments and approval',
+            'downloads' => 'Downloads and library access',
+            'accounts' => 'Accounts and saved purchases',
+        ],
+    ],
     'cart' => [
         'title' => 'Your cart',
         'subtitle' => 'Review selected studies before checkout.',
@@ -145,6 +163,8 @@ return [
         'have_account' => 'Already have an account?',
         'login_success' => 'Signed in successfully.',
         'register_success' => 'Account created successfully.',
+        'oauth_failed' => 'Social sign in could not be completed. Please try again.',
+        'oauth_cancelled' => 'Social sign in was cancelled.',
     ],
     'flash' => [
         'locale_updated' => 'Language updated.',

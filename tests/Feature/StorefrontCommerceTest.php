@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Storefront\Auth\OAuthController;
 use App\Models\BankTransfer;
 use App\Models\Cart;
 use App\Models\Media;
@@ -14,12 +15,14 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use Laravel\Socialite\Facades\Socialite;
 use Mockery;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class StorefrontCommerceTest extends TestCase
@@ -40,9 +43,16 @@ class StorefrontCommerceTest extends TestCase
                 ->has('products.0.title')
                 ->has('products.0.price')
                 ->has('products.0.href')
-                ->has('faqs.0.question')
                 ->has('cartSummary.items')
                 ->where('auth.user', null)
+            );
+
+        $this->get('/faq')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Storefront/Faq')
+                ->has('faqs.0.question')
+                ->has('faqs.0.answer')
             );
 
         $this->get('/studies')
@@ -267,6 +277,43 @@ class StorefrontCommerceTest extends TestCase
 
     public function test_oauth_callback_upserts_user_provider_columns(): void
     {
+        $this->mockSocialiteUser();
+
+        $this->get('/auth/google/callback?code=oauth-code')
+            ->assertRedirect('/library');
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('users', [
+            'email' => 'google@example.com',
+            'oauth_provider' => 'google',
+            'oauth_provider_id' => 'google-123',
+            'oauth_avatar' => 'https://example.com/avatar.png',
+        ]);
+    }
+
+    public function test_oauth_callback_recovers_code_from_server_query_string(): void
+    {
+        $request = Request::create('/auth/google/callback');
+        $request->server->set('QUERY_STRING', 'code=recovered-code');
+
+        $method = new ReflectionMethod(OAuthController::class, 'recoverOauthQuery');
+        $method->setAccessible(true);
+        $method->invoke(app(OAuthController::class), $request);
+
+        $this->assertSame('recovered-code', $request->input('code'));
+    }
+
+    public function test_oauth_callback_without_code_returns_to_login_with_error(): void
+    {
+        Socialite::shouldReceive('driver')->never();
+
+        $this->get('/auth/google/callback')
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors('oauth');
+    }
+
+    private function mockSocialiteUser(): void
+    {
         $socialUser = Mockery::mock(SocialiteUser::class);
         $socialUser->shouldReceive('getId')->andReturn('google-123');
         $socialUser->shouldReceive('getName')->andReturn('Google User');
@@ -279,16 +326,5 @@ class StorefrontCommerceTest extends TestCase
         $provider->shouldReceive('user')->andReturn($socialUser);
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
-
-        $this->get('/auth/google/callback')
-            ->assertRedirect('/library');
-
-        $this->assertAuthenticated();
-        $this->assertDatabaseHas('users', [
-            'email' => 'google@example.com',
-            'oauth_provider' => 'google',
-            'oauth_provider_id' => 'google-123',
-            'oauth_avatar' => 'https://example.com/avatar.png',
-        ]);
     }
 }

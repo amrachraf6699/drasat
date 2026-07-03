@@ -37,7 +37,7 @@ const siteInitial = computed(() => (siteName.value || 'D').trim().charAt(0).toUp
 
 const navItems = computed(() => [
     { label: t('layout.studies'), href: '/studies' },
-    { label: t('layout.faq'), href: '/#faq' },
+    { label: t('layout.faq'), href: '/faq' },
     { label: t('layout.library'), href: '/library' },
 ]);
 
@@ -141,8 +141,7 @@ function clearToastTimer() {
 
                 <div class="hidden items-center gap-4 lg:flex">
                     <button type="button" class="inline-flex h-10 items-center gap-2 px-2 text-sm font-semibold text-slate-800" @click="switchLocale">
-                        <span>{{ t('layout.language') }}</span>
-                        <Globe2 class="h-4 w-4" />
+                        <Globe2 class="h-6 w-6" />
                     </button>
                     <div class="h-8 w-px bg-slate-200" />
                     <Link href="/cart" class="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-900 transition hover:bg-slate-50">
@@ -262,7 +261,7 @@ function clearToastTimer() {
                 </div>
                 <div class="flex items-center gap-4">
                     <Link href="/studies" class="hover:text-emerald-800">{{ t('layout.studies') }}</Link>
-                    <Link href="/#faq" class="hover:text-emerald-800">{{ t('layout.faq') }}</Link>
+                    <Link href="/faq" class="hover:text-emerald-800">{{ t('layout.faq') }}</Link>
                     <Link href="/library" class="hover:text-emerald-800">{{ t('layout.library') }}</Link>
                 </div>
             </div>

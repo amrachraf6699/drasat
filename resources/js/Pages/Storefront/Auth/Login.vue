@@ -1,14 +1,17 @@
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { Link, useForm, usePage } from '@inertiajs/vue3';
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue';
 import { useStorefrontTranslations } from '@/Composables/useStorefrontTranslations';
 
+const page = usePage();
 const { t } = useStorefrontTranslations();
 const form = useForm({
     email: '',
     password: '',
     remember: false,
 });
+const oauthError = computed(() => page.props.errors?.oauth);
 
 function submit() {
     form.post('/login');
@@ -21,6 +24,10 @@ function submit() {
             <div class="mx-auto max-w-md px-4 sm:px-6">
                 <h1 class="text-4xl font-semibold text-slate-950">{{ t('auth.login_title') }}</h1>
                 <p class="mt-3 text-slate-600">{{ t('auth.login_subtitle') }}</p>
+
+                <div v-if="oauthError" class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {{ oauthError }}
+                </div>
 
                 <form class="mt-8 space-y-4" @submit.prevent="submit">
                     <label class="block">
