@@ -8,9 +8,11 @@ use App\Models\Payment;
 use App\Services\Storefront\CartService;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\PayPalClient;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -73,15 +75,24 @@ class CheckoutController extends Controller
         }
 
         $payment = $this->checkout->createPendingPaypalPayment($request->user(), $cart);
-        $paypalOrder = $this->paypal->createOrder($payment->load('order'));
+
+        try {
+            $paypalOrder = $this->paypal->createOrder($payment->load('order.items'));
+        } catch (RequestException $exception) {
+            $this->recordPaypalHttpFailure($payment, $exception, 'create_error');
+
+            throw ValidationException::withMessages([
+                'paypal' => __('storefront.checkout.paypal_failed'),
+            ]);
+        }
 
         $paypalOrderId = $paypalOrder['id'] ?? null;
 
         if (! $paypalOrderId) {
             Log::error('PayPal order creation failed.', [
-                'response' => $response ?? null,
-                'request' => $payload ?? null, // if available
-                'user_id' => auth()->id(),
+                'payment_id' => $payment->id,
+                'response' => $paypalOrder,
+                'user_id' => $request->user()->id,
             ]);
 
             throw ValidationException::withMessages([
@@ -109,13 +120,42 @@ class CheckoutController extends Controller
         abort_unless($payment->order?->user_id === $request->user()->id, 403);
         abort_unless($payment->provider === 'paypal' && $payment->provider_reference === $data['paypal_order_id'], 404);
 
-        $capture = $this->paypal->capture($data['paypal_order_id']);
+        try {
+            $capture = $this->paypal->capture($data['paypal_order_id']);
+        } catch (RequestException $exception) {
+            $this->recordPaypalHttpFailure($payment, $exception, 'capture_error');
+
+            throw ValidationException::withMessages([
+                'paypal' => __('storefront.checkout.paypal_failed'),
+            ]);
+        }
+
         $order = $this->checkout->capturePaypalPayment($payment, $capture);
 
         return response()->json([
             'status' => 'completed',
             'redirect' => route('library.index'),
             'order_number' => $order->order_number,
+        ]);
+    }
+
+    private function recordPaypalHttpFailure(Payment $payment, RequestException $exception, string $payloadKey): void
+    {
+        $response = $exception->response;
+        $payload = $response?->json() ?? ['message' => $exception->getMessage()];
+
+        Log::warning('PayPal request failed.', [
+            'payment_id' => $payment->id,
+            'paypal_order_id' => $payment->provider_reference,
+            'status' => $response?->status(),
+            'response' => $payload,
+        ]);
+
+        $this->checkout->failPaypalPayment($payment, [
+            $payloadKey => [
+                'status' => $response?->status(),
+                'response' => $payload,
+            ],
         ]);
     }
 }

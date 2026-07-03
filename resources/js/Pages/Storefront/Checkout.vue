@@ -93,18 +93,32 @@ function renderPayPalButtons() {
         createOrder: async () => {
             paypalLoading.value = true;
             paypalError.value = '';
-            const response = await window.axios.post('/checkout/paypal/create');
-            paypalPaymentId = response.data.payment_id;
-            return response.data.id;
+
+            try {
+                const response = await window.axios.post('/checkout/paypal/create');
+                paypalPaymentId = response.data.payment_id;
+                return response.data.id;
+            } catch (error) {
+                paypalLoading.value = false;
+                paypalError.value = paypalFailureMessage(error);
+                throw error;
+            }
         },
         onApprove: async (data) => {
             paypalLoading.value = true;
             paypalError.value = '';
-            const response = await window.axios.post('/checkout/paypal/capture', {
-                payment_id: paypalPaymentId,
-                paypal_order_id: data.orderID,
-            });
-            router.visit(response.data.redirect);
+
+            try {
+                const response = await window.axios.post('/checkout/paypal/capture', {
+                    payment_id: paypalPaymentId,
+                    paypal_order_id: data.orderID,
+                });
+                router.visit(response.data.redirect);
+            } catch (error) {
+                paypalLoading.value = false;
+                paypalError.value = paypalFailureMessage(error);
+                throw error;
+            }
         },
         onError: () => {
             paypalLoading.value = false;
@@ -114,6 +128,12 @@ function renderPayPalButtons() {
             paypalLoading.value = false;
         },
     }).render(paypalButtons.value);
+}
+
+function paypalFailureMessage(error) {
+    return error?.response?.data?.errors?.paypal?.[0]
+        || error?.response?.data?.message
+        || t('checkout.paypal_failed');
 }
 </script>
 

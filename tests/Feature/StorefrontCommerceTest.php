@@ -227,6 +227,17 @@ class StorefrontCommerceTest extends TestCase
         $this->assertSame(2500, $payment->amount_cents);
         $this->assertSame('PAYPAL-ORDER-1', $payment->provider_reference);
 
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api-m.sandbox.paypal.com/v2/checkout/orders') {
+                return false;
+            }
+
+            return data_get($request->data(), 'application_context.shipping_preference') === 'NO_SHIPPING'
+                && data_get($request->data(), 'application_context.user_action') === 'PAY_NOW'
+                && data_get($request->data(), 'purchase_units.0.items.0.category') === 'DIGITAL_GOODS'
+                && data_get($request->data(), 'purchase_units.0.amount.breakdown.item_total.value') === '25.00';
+        });
+
         $this->actingAs($user)
             ->postJson('/checkout/paypal/capture', [
                 'payment_id' => $payment->id,
@@ -238,6 +249,55 @@ class StorefrontCommerceTest extends TestCase
         $this->assertDatabaseHas('payments', ['id' => $payment->id, 'status' => 'completed']);
         $this->assertDatabaseHas('orders', ['id' => $payment->order_id, 'status' => 'paid']);
         $this->assertDatabaseHas('purchases', ['user_id' => $user->id, 'product_id' => $product->id]);
+    }
+
+    public function test_paypal_capture_http_failure_marks_payment_failed(): void
+    {
+        config([
+            'services.paypal.client_id' => 'client',
+            'services.paypal.secret' => 'secret',
+            'services.paypal.checkout_currency' => 'USD',
+            'services.paypal.egp_to_checkout_rate' => 0.02,
+        ]);
+
+        Http::fake([
+            'api-m.sandbox.paypal.com/v1/oauth2/token' => Http::response(['access_token' => 'token']),
+            'api-m.sandbox.paypal.com/v2/checkout/orders' => Http::response(['id' => 'PAYPAL-ORDER-1', 'status' => 'CREATED']),
+            'api-m.sandbox.paypal.com/v2/checkout/orders/PAYPAL-ORDER-1/capture' => Http::response([
+                'name' => 'UNPROCESSABLE_ENTITY',
+                'details' => [[
+                    'issue' => 'COMPLIANCE_VIOLATION',
+                    'description' => 'Transaction cannot be processed due to a possible compliance violation.',
+                ]],
+            ], 422),
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+        $user = User::where('email', 'user@drasa.test')->firstOrFail();
+        $product = Product::query()->where('status', 'active')->where('price_cents', 125000)->firstOrFail();
+
+        $this->actingAs($user)->post('/cart/items', ['product_id' => $product->id]);
+
+        $createResponse = $this->actingAs($user)
+            ->postJson('/checkout/paypal/create')
+            ->assertOk()
+            ->json();
+
+        $payment = Payment::findOrFail($createResponse['payment_id']);
+
+        $this->actingAs($user)
+            ->postJson('/checkout/paypal/capture', [
+                'payment_id' => $payment->id,
+                'paypal_order_id' => 'PAYPAL-ORDER-1',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('paypal');
+
+        $payment->refresh();
+
+        $this->assertSame('failed', $payment->status);
+        $this->assertSame('COMPLIANCE_VIOLATION', data_get($payment->payload, 'capture_error.response.details.0.issue'));
+        $this->assertDatabaseMissing('purchases', ['user_id' => $user->id, 'product_id' => $product->id]);
     }
 
     public function test_downloads_are_protected_by_purchase_ownership(): void
